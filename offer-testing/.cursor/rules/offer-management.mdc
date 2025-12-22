@@ -1,0 +1,63 @@
+---
+description: How to manage offers and their context
+globs: ["offers/**/*"]
+alwaysApply: false
+---
+
+# Offer Management
+
+## Folder Structure
+
+Each offer lives in `offers/{offer-slug}/` with this structure:
+- `README.md` - Overview and current status
+- `positioning-canvas.md` - Positioning decisions
+- `icp.md` - Ideal Customer Profile
+- `copy/` - Email and LinkedIn templates
+- `research/` - Market research and notes
+- `results/` - Campaign results and learnings
+
+## Creating New Offers
+
+Use the `/new-offer` command. This will:
+1. Create the folder structure from template
+2. Guide you through positioning canvas
+3. Generate initial ICP
+4. Create draft copy
+
+## Offer Statuses
+
+| Status | Description |
+|--------|-------------|
+| `positioning` | Working on positioning canvas |
+| `researched` | Market research complete |
+| `icp_defined` | ICP generated and saved |
+| `copy_ready` | Email and LinkedIn copy generated |
+| `campaign_active` | Outreach campaign running |
+| `paused` | Campaign paused |
+| `completed` | Campaign finished, results captured |
+| `killed` | Offer abandoned |
+
+## Context References
+
+When working on an offer, always reference:
+1. The offer's own files (positioning, ICP)
+2. General frameworks from `context/frameworks/`
+3. Relevant examples from `context/examples/`
+
+## Updating Learnings
+
+After each campaign, update:
+1. `offers/{slug}/results/learnings.md` - What we learned
+2. `context/learnings/what-works.md` - If broadly applicable
+
+## Workflow
+
+```
+/new-offer           → Creates offer folder, positioning canvas
+/offer-research      → Competitor and market research
+/offer-icp           → Generate ICP from positioning
+/offer-copy          → Generate email and LinkedIn copy
+/offer-launch        → Find companies, contacts, prepare messages
+[Manual sending]     → Send messages via LinkedIn/email
+/offer-review        → Analyze results, capture learnings
+```

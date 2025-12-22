@@ -1,0 +1,247 @@
+---
+description: Core project context and standards for the Offer Testing System
+globs: 
+alwaysApply: true
+---
+
+# Offer Testing System - Project Context
+
+## What This Project Does
+
+An AI-powered system to test business offers through outbound outreach.
+
+### Core Workflow (Sequential Phases)
+
+**PHASE 1: `1-new-offer` - Define the Offer**
+- Input: Offer name, description, type
+- Process: Positioning canvas + ICP
+- Output: `{slug}-positioning.md`, `{slug}-README.md`, empty folders (campaigns, copy, leads, results)
+- Cost: Free (no API calls)
+
+**PHASE 2: `2-offer-campaigns` - Plan Campaigns**
+- Input: Offer slug, campaign name
+- Process: Brainstorm signals, choose messaging framework (PVP/Use Case/Problem)
+- Output: `campaigns/{campaign-slug}/` folder with signals + strategy
+- Cost: Free (no API calls)
+- Note: Create 3-5 campaign ideas, pick best 1-2 to launch
+
+**PHASE 3: `3-campaign-copy` - Write Copy**
+- Input: Offer slug, campaign slug
+- Process: Generate email + LinkedIn copy variations (A/B test)
+- Output: `copy/{campaign-slug}/` folder with email + LinkedIn variations
+- Cost: Free (no API calls)
+
+**PHASE 4: `4-campaigns-leads` - Find Companies & Contacts**
+- Input: Offer slug, campaign slug
+- Process: Read ICP + signals, route to APIs, find companies, enrich, find contacts, check status
+- Output: `leads/{campaign-slug}/` (CSV exports), companies/contacts/campaign_contacts tables
+- Cost: 💰 API credits (TheirStack, Parallel, Exa, Unipile)
+
+**PHASE 5: `5-leads-outreach` - Review & Send** (V2 - not built yet)
+- Input: Offer slug, campaign slug
+- Process: Load queue, personalize messages, user reviews, send via Unipile (slow, safe)
+- Output: messages, account_activity tables (messages sent)
+- Cost: Free (Unipile included)
+
+**PHASE 6: `6-campaign-review` - Analyze Results** (V2 - not built yet)
+- Input: Campaign slug
+- Process: Pull metrics, analyze what worked, capture learnings
+- Output: `results/{campaign-slug}-learnings.md`
+- Cost: Free
+
+### Key Insight
+
+The quality of outreach depends on **signals**. Random companies = spam. Companies experiencing the problem = relevant.
+
+**Example:** For a "Sales Call Role Play Trainer" app:
+- **Problem:** Sales reps lack practice before real calls (defined in `1-new-offer`)
+- **Signal:** Hiring SDR/BDR/AE roles (defined in `2-offer-campaigns`)
+- **Copy:** PVP email with benchmark data (created in `3-campaign-copy`)
+- **Detection:** TheirStack job search (executed in `4-campaigns-leads`)
+- **Result:** Reach out to companies actively hiring sales → they NEED training
+
+## Tech Stack
+
+- **Language**: TypeScript / Node.js
+- **Frontend**: Next.js 14 (App Router)
+- **AI**: 
+  - **Cursor AI** - Interactive workflows (positioning, ICP, copy generation)
+  - **Anthropic API** (Optional) - Batch operations (fit scoring, personalization at scale)
+    - Model: claude-sonnet-4-20250514
+    - Only needed for automation/batch processing
+    - V1 can work without it (use Cursor AI + manual review)
+- **Database**: Supabase (Postgres)
+
+### Data & Enrichment APIs
+
+| API | Purpose | When to Use |
+|-----|---------|-------------|
+| **Parallel** | Company search, people search, enrichment | PRIMARY - Use for all ICP-based company/contact discovery |
+| **TheirStack** | Job posting signals | Use when signal = "hiring X role" |
+| **Exa** | AI-powered web search, research | Use for broad discovery, industry research, PVP insights |
+| **Sumble** | Company enrichment | Use for additional company data |
+| **Firecrawl** | Web scraping | Use to extract data from company websites |
+| **Leadmagic** | Email finding/verification | Use to find/verify contact emails |
+
+### Outreach & Inbox
+
+| API | Purpose |
+|-----|---------|
+| **Unipile** | LinkedIn + Email sending and inbox management |
+
+### API Routing Logic
+
+**When Cursor AI needs to find companies/contacts, use this decision tree:**
+
+```
+INPUT: Positioning Canvas (ICP + Signals)
+↓
+STEP 1: Identify Signal Type
+├─ Signal = "Hiring [role]" → Use TheirStack
+├─ Signal = "Using [tech]" → Use Parallel (tech stack filter)
+├─ Signal = "Company growth" → Use Parallel (employee count trends)
+├─ Signal = "Recent funding" → Use Exa (search for funding news)
+└─ No specific signal → Use Parallel (ICP firmographics only)
+↓
+STEP 2: Get Companies
+├─ TheirStack/Exa results → Extract domains
+└─ Enrich with Parallel → Verify ICP match
+↓
+STEP 3: Find Contacts
+└─ Use Parallel (people search by title)
+↓
+STEP 4: Enrich Contacts
+└─ Use Leadmagic (find/verify emails if needed)
+↓
+STEP 5: Save to Supabase
+└─ Companies → companies table
+└─ Contacts → contacts table
+```
+
+**Quick Reference:**
+- @file context/api-guides/parallel-quick-reference.md
+- @file context/api-guides/theirstack-quick-reference.md
+- @file context/api-guides/exa-quick-reference.md
+
+## Key Constraints & Workflow
+
+### V1 Scope
+- ✅ **Signal-based targeting** - Hiring signals (TheirStack), company signals
+- ✅ **Permissionless value campaigns** - Value-first outreach approach
+  - @file context/frameworks/permissionless-value.md
+- ✅ **Use case-driven outreach** - Deep research, specific implementation
+  - @file context/frameworks/use-case-driven-outreach.md
+- ❌ **Full TAM sourcing** - V2 only
+- ❌ **Multi-offer matching** - V2 only
+- ❌ **A/B testing** - V2 only
+
+### LinkedIn Safety (CRITICAL)
+**We must avoid automation detection. These limits are non-negotiable:**
+
+- **Rate Limits:**
+  - Max 20 connection requests/day (stop at 18 to be safe)
+  - Max 40 messages/day (stop at 38 to be safe)
+  - 2-5 minute delays between actions (random jitter)
+  - Business hours only: 9am-6pm weekdays (recipient timezone)
+
+- **Filtering:**
+  - Skip 1st degree connections (never cold message existing connections)
+  - Skip already contacted (check via Unipile)
+  - Skip if no valid contact method
+
+- **Implementation:**
+  - @file src/lib/utils/linkedin-safety.ts (already built)
+  - All actions logged to `account_activity` table
+  - Queue processor checks safety before each send
+
+### Human-in-Loop
+**NOT fully automated. User reviews before sending:**
+
+1. System finds companies/contacts → saves to database
+2. System generates copy → saves to database
+3. **User reviews in queue** → approves/edits/rejects each message
+4. System sends approved messages slowly (respecting rate limits)
+
+This gives control while automating the tedious parts (finding leads, drafting copy).
+
+## Project Structure
+
+```
+offer-testing/
+├── .cursor/          # Cursor rules and commands
+├── context/          # General context (frameworks, copywriting, examples)
+├── offers/           # Offer-specific context (per offer)
+├── src/
+│   ├── lib/clients/  # API client wrappers
+│   ├── lib/types/    # TypeScript types
+│   ├── lib/utils/    # Utilities (LinkedIn safety, helpers)
+│   ├── core/         # Business logic
+│   └── app/          # Next.js app
+├── scripts/          # Setup and utility scripts
+└── docs/             # Documentation
+```
+
+## API Documentation Links
+
+- Parallel: https://docs.parallel.ai/
+- Exa: https://docs.exa.ai/
+- Sumble: https://docs.sumble.com/
+- TheirStack: https://theirstack.com/
+- Leadmagic: https://docs.leadmagic.io/
+- Unipile: https://docs.unipile.com/
+- Supabase: https://supabase.com/docs
+
+## Outreach Frameworks
+
+The system supports two complementary outreach approaches:
+
+### 1. Permissionless Value (PVP)
+**Best for:** Breaking into new accounts, small TAM, building trust
+- Give value BEFORE asking for anything
+- 7 Rules validation (independently useful, public data, information asymmetry, etc.)
+- 4-Phase Framework (Identify → Investigate → Calculate → Construct)
+- @file context/frameworks/permissionless-value.md
+
+### 2. Use Case-Driven Outreach
+**Best for:** Clear product-market fit, multiple use cases, quantifiable impact
+- Work backwards from the perfect email
+- Deep research (30+ minutes per company)
+- Hyper-specific implementation details
+- Quantified impact with real data
+- @file context/frameworks/use-case-driven-outreach.md
+
+### When to Use Each
+- **PVP:** Lead with insights, no product pitch
+- **Use Case:** Show exact implementation, quantify ROI
+- **Combined:** PVP first message → Use case follow-up
+
+## Slash Commands Available
+
+### Active Commands (Implemented)
+- `1-new-offer` - Create offer with positioning canvas + ICP
+- `2-offer-campaigns` - Create campaign strategies with signals + framework
+- `3-campaign-copy` - Write email + LinkedIn copy variations
+- `4-campaigns-leads` - Find companies & contacts (spends API credits)
+
+### Future Commands (Not Yet Built)
+- `5-leads-outreach` - Review and send messages (V2)
+- `6-campaign-review` - Analyze campaign results (V2)
+
+### Sequential Workflow
+```
+1-new-offer
+    ↓
+2-offer-campaigns (x3-5 ideas)
+    ↓
+3-campaign-copy (for each campaign)
+    ↓
+Pick best campaign(s) to launch
+    ↓
+4-campaigns-leads (spends credits)
+    ↓
+5-leads-outreach (send)
+    ↓
+6-campaign-review (learn)
+```
+
+**Key:** Create multiple campaign IDEAS cheaply (phases 2-3), then launch only the best ones (phase 4).

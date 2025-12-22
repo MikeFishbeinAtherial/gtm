@@ -1,0 +1,35 @@
+{
+  "name": "offer-testing",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test-apis": "npx ts-node scripts/test-apis.ts",
+    "test-parallel": "npx ts-node scripts/test-parallel.ts",
+    "test-exa": "npx ts-node scripts/test-exa.ts",
+    "test-firecrawl": "npx ts-node scripts/test-firecrawl.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
+    "@mendable/firecrawl-js": "^4.9.3",
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^17.2.3",
+    "exa-js": "^1.0.0",
+    "next": "^14.0.0",
+    "parallel-web": "^0.2.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "eslint": "^8.55.0",
+    "eslint-config-next": "^14.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0"
+  }
+}
