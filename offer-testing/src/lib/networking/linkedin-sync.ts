@@ -207,7 +207,7 @@ export async function syncLinkedInMessages(
         const conversationData: CreateLinkedInConversationInput = {
           unipile_chat_id: conv.id,
           connection_id: connection?.id,
-          linkedin_id: otherParticipant.id || otherParticipant.linkedin_id,
+          linkedin_id: otherParticipant.id || (otherParticipant as any).linkedin_id,
           participant_names: conv.participants.map((p: any) => p.name),
           is_group_chat: conv.participants.length > 2,
           unread_count: conv.unread_count || 0,

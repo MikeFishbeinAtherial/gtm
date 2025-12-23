@@ -17,19 +17,8 @@ import { Parallel } from 'parallel-web'
 // RE-EXPORT SDK TYPES
 // ===========================================
 
-// Export the main client and key types
+// Export the main client
 export { Parallel }
-export type { 
-  // Task API types
-  TaskRun,
-  TaskRunCreateParams,
-  TaskRunResult,
-  
-  // FindAll API types
-  FindallRun,
-  FindallCreateParams,
-  FindallRunResult,
-} from 'parallel-web'
 
 // ===========================================
 // CUSTOM WRAPPER CLIENT
@@ -149,7 +138,7 @@ export class ParallelClient {
     return this.client.taskRun.create({
       input: input,
       processor: processor,
-      task_spec: schema ? { output_schema: schema } : undefined
+      task_spec: schema ? { output_schema: schema } : undefined as any
     })
   }
 

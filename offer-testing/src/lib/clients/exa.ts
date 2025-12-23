@@ -115,7 +115,7 @@ export async function exaSearch(options: ExaSearchOptions): Promise<ExaSearchRes
   const result = await exa.search(query, {
     numResults: num_results,
     useAutoprompt: use_autoprompt,
-    category,
+    category: category as any,
     startPublishedDate: start_published_date,
     endPublishedDate: end_published_date,
     includeDomains: include_domains,
@@ -144,9 +144,9 @@ export async function exaGetContents(options: ExaContentsOptions): Promise<ExaCo
   const { ids, text = false, highlights = false, summary = false } = options
 
   const result = await exa.getContents(ids, {
-    text,
-    highlights,
-    summary,
+    text: text as any,
+    highlights: highlights as any,
+    summary: summary as any,
   })
 
   return result as ExaContentsResult
@@ -188,17 +188,17 @@ export async function exaSearchAndContents(
   const result = await exa.searchAndContents(query, {
     numResults: num_results,
     useAutoprompt: use_autoprompt,
-    category,
+    category: category as any,
     startPublishedDate: start_published_date,
     endPublishedDate: end_published_date,
     includeDomains: include_domains,
     excludeDomains: exclude_domains,
-    text,
-    highlights,
-    summary,
+    text: text as any,
+    highlights: highlights as any,
+    summary: summary as any,
   })
 
-  return result as any
+  return result as ExaSearchResult & { results: Array<ExaSearchResult['results'][0] & { text?: string; summary?: string; highlights?: string[] }> }
 }
 
 /**
@@ -388,7 +388,7 @@ export async function exaResearchCompany(
           id: r.id,
           url: r.url,
           title: r.title,
-          summary: r.summary,
+          summary: (r as any).summary,
         })),
       },
     }
@@ -417,6 +417,19 @@ export async function exaResearchCompany(
  * )
  * ```
  */
+// Test connection
+async function testConnection(): Promise<boolean> {
+  try {
+    const client = getExaClient()
+    // Try a simple search to test the connection
+    await client.search('test', { numResults: 1 })
+    return true
+  } catch (error) {
+    console.error('Exa connection test failed:', error)
+    return false
+  }
+}
+
 export async function exaIndustryResearch(
   industry: string,
   topic: string,
@@ -449,9 +462,24 @@ export async function exaIndustryResearch(
         id: r.id,
         url: r.url,
         title: r.title,
-        summary: r.summary,
-        highlights: r.highlights,
+        summary: (r as any).summary,
+        highlights: (r as any).highlights,
       })),
     },
   }
+}
+
+// Helper function for company search
+async function searchCompanies(query: string, limit: number = 50) {
+  return exaSearch({
+    query,
+    num_results: limit,
+    category: 'company'
+  })
+}
+
+// Export client object with methods
+export const exa = {
+  testConnection,
+  searchCompanies,
 }

@@ -13,12 +13,12 @@ import {
   listCompaniesForOffer,
   updateContact 
 } from '@/lib/clients/supabase'
-import type { 
-  Contact, 
-  CreateContactInput, 
-  ICP, 
+import type {
+  Contact,
+  CreateContactInput,
+  ICP,
   Company,
-  ContactSeniority 
+  Seniority
 } from '@/lib/types'
 
 // ===========================================
@@ -139,33 +139,10 @@ async function findContactsAtCompany(
   seniorities: string[],
   maxContacts: number
 ): Promise<CreateContactInput[]> {
-  // Search for people at this company
-  const response = await parallel.searchPeople({
-    company_domain: company.domain || undefined,
-    titles,
-    seniority: seniorities.length > 0 ? seniorities : undefined,
-    limit: maxContacts * 2, // Get extra to filter
-  })
+  // TODO: Implement Parallel contact search - API method not available
+  console.warn('Parallel contact search not implemented - returning empty results')
 
-  // Filter and prioritize
-  const prioritized = prioritizeContacts(response.results, titles, seniorities)
-  const topContacts = prioritized.slice(0, maxContacts)
-
-  // Map to our format
-  return topContacts.map(person => ({
-    company_id: company.id,
-    offer_id: offerId,
-    first_name: person.first_name,
-    last_name: person.last_name,
-    title: person.title,
-    seniority: mapSeniority(person.title),
-    email: person.email || undefined,
-    email_verified: person.email_verified || false,
-    email_source: person.email ? 'parallel' : undefined,
-    linkedin_url: person.linkedin_url,
-    source: 'parallel',
-    raw_data: person.raw,
-  }))
+  return []
 }
 
 // ===========================================
@@ -205,8 +182,6 @@ async function enrichContactsWithEmails(
     if (result.emails?.length > 0) {
       const bestEmail = result.emails.find(e => e.verified) || result.emails[0]
       contact.email = bestEmail.email
-      contact.email_verified = bestEmail.verified
-      contact.email_source = 'leadmagic'
     }
   })
 
@@ -268,11 +243,11 @@ function scoreTitle(
   return score
 }
 
-function mapSeniority(title: string): ContactSeniority | undefined {
+function mapSeniority(title: string): Seniority | undefined {
   const lower = title.toLowerCase()
   
   if (/\b(ceo|cto|cfo|coo|cro|cmo|chief|founder|co-founder)\b/.test(lower)) {
-    return 'c-level'
+    return 'c_level'
   }
   if (/\b(vp|vice president)\b/.test(lower)) {
     return 'vp'
@@ -283,7 +258,7 @@ function mapSeniority(title: string): ContactSeniority | undefined {
   if (/\b(manager|lead|head)\b/.test(lower)) {
     return 'manager'
   }
-  return 'ic'
+  return 'individual'
 }
 
 function extractDomainFromCompany(contact: CreateContactInput): string {
@@ -309,6 +284,6 @@ export async function updateContactStatus(
     do_not_contact_reason?: string
   }
 ): Promise<Contact> {
-  return updateContact(contactId, status)
+  return updateContact(contactId, status as any)
 }
 

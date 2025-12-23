@@ -9,7 +9,7 @@
 
 import { generate, generateJSON } from '@/lib/clients/anthropic'
 import { updateOffer, getOffer } from '@/lib/clients/supabase'
-import type { ICP, Offer, PositioningCanvas } from '@/lib/types'
+import type { ICP, Offer } from '@/lib/types'
 
 // ===========================================
 // TYPES
@@ -17,7 +17,7 @@ import type { ICP, Offer, PositioningCanvas } from '@/lib/types'
 
 export interface GenerateICPInput {
   offer_id: string
-  positioning_canvas?: PositioningCanvas
+  positioning_canvas?: any
   additional_context?: string
 }
 
@@ -44,7 +44,7 @@ export async function generateICP(input: GenerateICPInput): Promise<GenerateICPR
     throw new Error(`Offer not found: ${input.offer_id}`)
   }
 
-  const positioning = input.positioning_canvas || offer.positioning
+  const positioning = input.positioning_canvas || (offer as any).positioning
   if (!positioning) {
     throw new Error('Positioning canvas is required to generate ICP')
   }
@@ -62,7 +62,7 @@ export async function generateICP(input: GenerateICPInput): Promise<GenerateICPR
   // Save to database
   await updateOffer(input.offer_id, {
     icp: result.icp,
-    status: 'icp_defined',
+    status: 'ready',
   })
 
   return result
@@ -80,7 +80,7 @@ Always output valid JSON matching the expected schema. Be specific and actionabl
 
 function buildICPPrompt(
   offer: Offer,
-  positioning: PositioningCanvas,
+  positioning: any,
   additionalContext?: string
 ): string {
   return `

@@ -354,7 +354,7 @@ export class TheirStackClient {
       )
     }
 
-    return this.request<TheirStackJobSearchResponse>('/v1/jobs/search', 'POST', params)
+    return this.request<TheirStackJobSearchResponse>('/v1/jobs/search', 'POST', params as any)
   }
 
   /**

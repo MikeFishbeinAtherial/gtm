@@ -12,9 +12,8 @@ import type {
   Offer, CreateOfferInput, UpdateOfferInput,
   Company, CreateCompanyInput, UpdateCompanyInput,
   Contact, CreateContactInput, UpdateContactInput, ContactWithCompany,
-  Outreach, CreateOutreachInput, UpdateOutreachInput,
   Campaign, CreateCampaignInput,
-  LinkedInActivity, CreateLinkedInActivityInput, LinkedInDailyCount
+  LinkedInDailyCount
 } from '@/lib/types'
 
 // ===========================================
@@ -283,63 +282,63 @@ export async function updateContact(id: string, input: UpdateContactInput): Prom
 // OUTREACH
 // ===========================================
 
-export async function createOutreach(input: CreateOutreachInput): Promise<Outreach> {
-  const { data, error } = await supabase
-    .from('outreach')
-    .insert(input)
-    .select()
-    .single()
-  
-  if (error) throw new Error(`Failed to create outreach: ${error.message}`)
-  return data
-}
+// export async function createOutreach(input: CreateOutreachInput): Promise<Outreach> {
+//   const { data, error } = await supabase
+//     .from('outreach')
+//     .insert(input)
+//     .select()
+//     .single()
 
-export async function getOutreach(id: string): Promise<Outreach | null> {
-  const { data, error } = await supabase
-    .from('outreach')
-    .select()
-    .eq('id', id)
-    .single()
-  
-  if (error && error.code !== 'PGRST116') {
-    throw new Error(`Failed to get outreach: ${error.message}`)
-  }
-  return data
-}
+//   if (error) throw new Error(`Failed to create outreach: ${error.message}`)
+//   return data
+// }
 
-export async function listOutreachForOffer(offerId: string): Promise<Outreach[]> {
-  const { data, error } = await supabase
-    .from('outreach')
-    .select()
-    .eq('offer_id', offerId)
-    .order('created_at', { ascending: false })
-  
-  if (error) throw new Error(`Failed to list outreach: ${error.message}`)
-  return data || []
-}
+// export async function getOutreach(id: string): Promise<Outreach | null> {
+//   const { data, error } = await supabase
+//     .from('outreach')
+//     .select()
+//     .eq('id', id)
+//     .single()
 
-export async function listPendingOutreach(offerId: string): Promise<Outreach[]> {
-  const { data, error } = await supabase
-    .from('outreach')
-    .select()
-    .eq('offer_id', offerId)
-    .eq('status', 'pending')
-  
-  if (error) throw new Error(`Failed to list pending outreach: ${error.message}`)
-  return data || []
-}
+//   if (error && error.code !== 'PGRST116') {
+//     throw new Error(`Failed to get outreach: ${error.message}`)
+//   }
+//   return data
+// }
 
-export async function updateOutreach(id: string, input: UpdateOutreachInput): Promise<Outreach> {
-  const { data, error } = await supabase
-    .from('outreach')
-    .update(input)
-    .eq('id', id)
-    .select()
-    .single()
-  
-  if (error) throw new Error(`Failed to update outreach: ${error.message}`)
-  return data
-}
+// export async function listOutreachForOffer(offerId: string): Promise<Outreach[]> {
+//   const { data, error } = await supabase
+//     .from('outreach')
+//     .select()
+//     .eq('offer_id', offerId)
+//     .order('created_at', { ascending: false })
+
+//   if (error) throw new Error(`Failed to list outreach: ${error.message}`)
+//   return data || []
+// }
+
+// export async function listPendingOutreach(offerId: string): Promise<Outreach[]> {
+//   const { data, error } = await supabase
+//     .from('outreach')
+//     .select()
+//     .eq('offer_id', offerId)
+//     .eq('status', 'pending')
+
+//   if (error) throw new Error(`Failed to list pending outreach: ${error.message}`)
+//   return data || []
+// }
+
+// export async function updateOutreach(id: string, input: UpdateOutreachInput): Promise<Outreach> {
+//   const { data, error } = await supabase
+//     .from('outreach')
+//     .update(input)
+//     .eq('id', id)
+//     .select()
+//     .single()
+
+//   if (error) throw new Error(`Failed to update outreach: ${error.message}`)
+//   return data
+// }
 
 // ===========================================
 // CAMPAIGNS
@@ -371,16 +370,16 @@ export async function listCampaignsForOffer(offerId: string): Promise<Campaign[]
 // LINKEDIN ACTIVITY
 // ===========================================
 
-export async function logLinkedInActivity(input: CreateLinkedInActivityInput): Promise<LinkedInActivity> {
-  const { data, error } = await supabase
-    .from('linkedin_activity')
-    .insert(input)
-    .select()
-    .single()
-  
-  if (error) throw new Error(`Failed to log LinkedIn activity: ${error.message}`)
-  return data
-}
+// export async function logLinkedInActivity(input: CreateLinkedInActivityInput): Promise<LinkedInActivity> {
+//   const { data, error } = await supabase
+//     .from('linkedin_activity')
+//     .insert(input)
+//     .select()
+//     .single()
+
+//   if (error) throw new Error(`Failed to log LinkedIn activity: ${error.message}`)
+//   return data
+// }
 
 export async function getLinkedInDailyCounts(account: string): Promise<LinkedInDailyCount[]> {
   const { data, error } = await supabase

@@ -182,7 +182,7 @@ export function chunk<T>(arr: T[], size: number): T[][] {
  * Remove duplicates from an array.
  */
 export function unique<T>(arr: T[]): T[] {
-  return [...new Set(arr)]
+  return Array.from(new Set(arr))
 }
 
 /**

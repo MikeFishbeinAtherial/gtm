@@ -139,7 +139,7 @@ async function main() {
     )
     
     log(`\n✅ FindAll run created successfully: ${findall.findall_id}`, 'green')
-    log(`📊 Status: ${findall.status.state}`, 'dim')
+    log(`📊 Status: ${(findall.status as any).state}`, 'dim')
     log(`⚙️  Generator: ${findall.generator}`, 'dim')
     
     log('\n⏱️  Dataset building takes 5-60 minutes to complete.', 'yellow')

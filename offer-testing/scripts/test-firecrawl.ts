@@ -108,7 +108,7 @@ async function test3_AgentBasicExtraction() {
       console.log('\n✅ Success!')
       console.log(`Credits used: ${result.creditsUsed}`)
       console.log('\nFounders:')
-      result.data.founders.forEach((founder: any, i: number) => {
+      ;(result.data as any).founders.forEach((founder: any, i: number) => {
         console.log(`${i + 1}. ${founder.name}`)
         if (founder.role) console.log(`   Role: ${founder.role}`)
         if (founder.background) console.log(`   Background: ${founder.background}`)
@@ -146,8 +146,8 @@ async function test4_AgentWithURLs() {
     if (result.status === 'completed' && result.data) {
       console.log('\n✅ Success!')
       console.log(`Credits used: ${result.creditsUsed}`)
-      console.log(`\nFound ${result.data.plans.length} pricing plans:`)
-      result.data.plans.forEach((plan: any, i: number) => {
+      console.log(`\nFound ${(result.data as any).plans.length} pricing plans:`)
+      ;(result.data as any).plans.forEach((plan: any, i: number) => {
         console.log(`\n${i + 1}. ${plan.name} - ${plan.price}`)
         console.log(`   Features: ${plan.features.slice(0, 3).join(', ')}${plan.features.length > 3 ? '...' : ''}`)
       })

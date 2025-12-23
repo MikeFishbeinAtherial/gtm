@@ -20,7 +20,7 @@ async function main() {
     const accounts = await unipile.listAccounts()
     
     const linkedinAccount = accounts.find(
-      a => a.provider === 'linkedin' || a.provider === 'LINKEDIN'
+      a => a.provider === 'linkedin'
     )
 
     if (!linkedinAccount) {

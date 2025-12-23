@@ -67,7 +67,7 @@ async function testExa() {
     })
 
     console.log(`✅ Found ${searchWithContent.results.length} articles with summaries:`)
-    searchWithContent.results.forEach((result, i) => {
+    searchWithContent.results.forEach((result: any, i) => {
       console.log(`  ${i + 1}. ${result.title}`)
       console.log(`     ${result.url}`)
       if (result.summary) {
@@ -160,7 +160,7 @@ async function testExa() {
         console.log(`     ${article.url}`)
         
         if (research.contents?.results[i]?.summary) {
-          console.log(`     📄 ${research.contents.results[i].summary.substring(0, 150)}...`)
+          console.log(`     📄 ${research.contents.results[i]?.summary?.substring(0, 150)}...`)
         }
       }
       console.log('')
