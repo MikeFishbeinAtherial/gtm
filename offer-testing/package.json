@@ -10,7 +10,9 @@
     "test-apis": "npx ts-node scripts/test-apis.ts",
     "test-parallel": "npx ts-node scripts/test-parallel.ts",
     "test-exa": "npx ts-node scripts/test-exa.ts",
-    "test-firecrawl": "npx ts-node scripts/test-firecrawl.ts"
+    "test-firecrawl": "npx ts-node scripts/test-firecrawl.ts",
+    "campaign:worker": "node scripts/campaign-worker.js",
+    "campaign:start": "node scripts/send-networking-campaign.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",

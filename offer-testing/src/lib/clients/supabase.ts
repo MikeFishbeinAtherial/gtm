@@ -288,7 +288,7 @@ export async function updateContact(id: string, input: UpdateContactInput): Prom
 //     .insert(input)
 //     .select()
 //     .single()
-
+  
 //   if (error) throw new Error(`Failed to create outreach: ${error.message}`)
 //   return data
 // }
@@ -299,7 +299,7 @@ export async function updateContact(id: string, input: UpdateContactInput): Prom
 //     .select()
 //     .eq('id', id)
 //     .single()
-
+  
 //   if (error && error.code !== 'PGRST116') {
 //     throw new Error(`Failed to get outreach: ${error.message}`)
 //   }
@@ -312,7 +312,7 @@ export async function updateContact(id: string, input: UpdateContactInput): Prom
 //     .select()
 //     .eq('offer_id', offerId)
 //     .order('created_at', { ascending: false })
-
+  
 //   if (error) throw new Error(`Failed to list outreach: ${error.message}`)
 //   return data || []
 // }
@@ -323,7 +323,7 @@ export async function updateContact(id: string, input: UpdateContactInput): Prom
 //     .select()
 //     .eq('offer_id', offerId)
 //     .eq('status', 'pending')
-
+  
 //   if (error) throw new Error(`Failed to list pending outreach: ${error.message}`)
 //   return data || []
 // }
@@ -335,7 +335,7 @@ export async function updateContact(id: string, input: UpdateContactInput): Prom
 //     .eq('id', id)
 //     .select()
 //     .single()
-
+  
 //   if (error) throw new Error(`Failed to update outreach: ${error.message}`)
 //   return data
 // }
@@ -376,7 +376,7 @@ export async function listCampaignsForOffer(offerId: string): Promise<Campaign[]
 //     .insert(input)
 //     .select()
 //     .single()
-
+  
 //   if (error) throw new Error(`Failed to log LinkedIn activity: ${error.message}`)
 //   return data
 // }

@@ -128,7 +128,7 @@ async function searchParallel(
   limit: number
 ): Promise<SourceSearchResult> {
   const query = buildParallelQuery(icp)
-
+  
   // Use findAll API to search for companies
   const findallRun = await parallel.findAll(
     'company',
@@ -185,7 +185,7 @@ async function searchSumble(
   limit: number
 ): Promise<SourceSearchResult> {
   const query = buildSumbleQuery(icp)
-
+  
   // TODO: Implement Sumble search - API method not available
   console.warn('Sumble search not implemented - returning empty results')
 
@@ -199,10 +199,10 @@ async function searchTheirStack(
   offerId: string,
   limit: number
 ): Promise<SourceSearchResult> {
-  const jobTitles = icp.search_queries?.theirstack?.job_titles ||
-    icp.buyer_profile?.titles?.primary ||
+  const jobTitles = icp.search_queries?.theirstack?.job_titles || 
+    icp.buyer_profile?.titles?.primary || 
     ['SDR', 'Sales Manager']
-
+  
   // TODO: Implement TheirStack search - API parameters incorrect
   console.warn('TheirStack search not implemented - returning empty results')
 

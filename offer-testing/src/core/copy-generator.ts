@@ -7,13 +7,13 @@
 
 import { generateJSON } from '@/lib/clients/anthropic'
 import { updateOffer, getOffer } from '@/lib/clients/supabase'
-import type {
-  Offer,
+import type { 
+  Offer, 
   ICP,
   EmailSequence,
   EmailTemplate,
   LinkedInTemplates,
-  PersonalizationVariables
+  PersonalizationVariables 
 } from '@/lib/types'
 
 // ===========================================

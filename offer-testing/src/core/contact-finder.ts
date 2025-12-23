@@ -13,10 +13,10 @@ import {
   listCompaniesForOffer,
   updateContact 
 } from '@/lib/clients/supabase'
-import type {
-  Contact,
-  CreateContactInput,
-  ICP,
+import type { 
+  Contact, 
+  CreateContactInput, 
+  ICP, 
   Company,
   Seniority
 } from '@/lib/types'

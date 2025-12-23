@@ -6,14 +6,14 @@
  */
 
 import { unipile } from '@/lib/clients/unipile'
-import {
+import { 
   getOffer,
   getContactsReadyForOutreach,
   updateContact,
   getLinkedInDailyCounts,
 } from '@/lib/clients/supabase'
 import { personalizeMessage } from './copy-generator'
-import type {
+import type { 
   Contact,
   ContactWithCompany,
 } from '@/lib/types'

@@ -62,8 +62,8 @@ export async function getRateLimitStatus(account: string): Promise<Record<string
   // Simplified for Railway deployment - return dummy safe limits
   const nextReset = new Date()
   nextReset.setUTCHours(24, 0, 0, 0)
-
-  return {
+    
+    return {
     connection_request: {
       action_type: 'connection_request',
       daily_limit: 20,
