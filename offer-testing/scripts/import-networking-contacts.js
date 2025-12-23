@@ -22,7 +22,10 @@ dotenv.config({ path: path.join(__dirname, '..', '.env.local') });
 const UNIPILE_DSN = process.env.UNIPILE_DSN;
 const UNIPILE_API_KEY = process.env.UNIPILE_API_KEY;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Check for Supabase service key with multiple possible names
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY 
+  || process.env.SUPABASE_SECRET_KEY 
+  || process.env.SUPABASE_SERVICE_KEY;
 
 // Validate environment
 if (!UNIPILE_DSN || !UNIPILE_API_KEY) {
@@ -67,9 +70,27 @@ try {
   }
 
   const accounts = await response.json();
-  const linkedinAccount = accounts.items?.find(acc => acc.provider === 'LINKEDIN');
+  
+  // Debug: Show what accounts we got
+  if (accounts.items && accounts.items.length > 0) {
+    console.log('📋 Available accounts:');
+    accounts.items.forEach(acc => {
+      const fields = Object.keys(acc).join(', ');
+      console.log(`   - ${acc.display_name || acc.id}: fields=[${fields}]`);
+      console.log(`     provider: ${acc.provider}, type: ${acc.type}, platform: ${acc.platform}`);
+    });
+    console.log();
+  }
+  
+  // Try multiple provider/type/platform name variations
+  const linkedinAccount = accounts.items?.find(acc => {
+    const provider = (acc.provider || acc.type || acc.platform || '').toUpperCase();
+    return provider === 'LINKEDIN' || provider.includes('LINKEDIN');
+  });
   
   if (!linkedinAccount) {
+    console.error('❌ No LinkedIn account found. Available providers:', 
+      accounts.items?.map(a => a.provider).join(', ') || 'none');
     throw new Error('No LinkedIn account found');
   }
 
@@ -80,27 +101,54 @@ try {
   process.exit(1);
 }
 
-// Step 3: Get all existing connections from Unipile
+// Step 3: Get ALL existing connections from Unipile (with pagination)
 console.log('📥 Fetching LinkedIn connections from Unipile...');
 let unipileConnections = [];
+let cursor = null;
+let page = 1;
+
 try {
-  const response = await fetch(
-    `${UNIPILE_DSN}/attendees?account_id=${unipileAccountId}&limit=1000`,
-    {
+  do {
+    const url = cursor 
+      ? `${UNIPILE_DSN}/users/relations?account_id=${unipileAccountId}&limit=100&cursor=${cursor}`
+      : `${UNIPILE_DSN}/users/relations?account_id=${unipileAccountId}&limit=100`;
+    
+    const response = await fetch(url, {
       headers: {
         'X-API-KEY': UNIPILE_API_KEY,
         'Accept': 'application/json'
       }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
-  );
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const pageConnections = data.items || [];
+    unipileConnections = unipileConnections.concat(pageConnections);
+    
+    cursor = data.cursor;
+    console.log(`   Page ${page}: ${pageConnections.length} connections (total: ${unipileConnections.length})`);
+    
+    page++;
+    
+    // Small delay between pages to be safe
+    if (cursor) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  } while (cursor);
+  
+  console.log(`✅ Fetched ${unipileConnections.length} total connections from Unipile`);
+  
+  // Debug: Show sample connection structure
+  if (unipileConnections.length > 0) {
+    console.log('\n📋 Sample connection structure:');
+    const sample = unipileConnections[0];
+    console.log('   Fields:', Object.keys(sample).join(', '));
+    console.log('   Sample data:', JSON.stringify(sample, null, 2).substring(0, 500));
+    console.log();
   }
-
-  const data = await response.json();
-  unipileConnections = data.items || [];
-  console.log(`✅ Fetched ${unipileConnections.length} connections from Unipile\n`);
 } catch (error) {
   console.error('❌ Failed to fetch connections:', error.message);
   process.exit(1);
@@ -112,44 +160,107 @@ console.log('🔍 Matching contacts to Unipile connections...');
 // Normalize LinkedIn URLs for matching
 function normalizeLinkedInUrl(url) {
   if (!url) return '';
-  // Remove trailing slash, lowercase, remove protocol
+  // Remove trailing slash, lowercase, remove protocol, remove numeric IDs
   return url
     .toLowerCase()
     .replace(/\/$/, '')
     .replace(/^https?:\/\//, '')
-    .replace(/^www\./, '');
+    .replace(/^www\./, '')
+    .replace(/\/in\/[^\/]+-\d+$/, (match) => {
+      // Extract just the username part before the numeric ID
+      return match.replace(/-\d+$/, '');
+    });
 }
 
-// Create lookup map from Unipile connections
-const connectionMap = new Map();
+// Extract LinkedIn username from URL
+function extractLinkedInUsername(url) {
+  if (!url) return null;
+  const match = url.match(/linkedin\.com\/in\/([^\/\?]+)/i);
+  if (match) {
+    // Remove numeric suffix if present (e.g., "trevor-martin-86567859" -> "trevor-martin")
+    return match[1].replace(/-\d+$/, '').toLowerCase();
+  }
+  return null;
+}
+
+// Create lookup map from Unipile connections (by URL and by username)
+const connectionMapByUrl = new Map();
+const connectionMapByUsername = new Map();
+let sampleUnipileUrls = [];
 unipileConnections.forEach(conn => {
-  if (conn.linkedin_url) {
-    const normalized = normalizeLinkedInUrl(conn.linkedin_url);
-    connectionMap.set(normalized, conn);
+  // Try multiple possible URL field names (Unipile uses public_profile_url)
+  const url = conn.public_profile_url || conn.linkedin_url || conn.url || conn.profile_url || conn.linkedin_profile_url;
+  if (url && sampleUnipileUrls.length < 3) {
+    sampleUnipileUrls.push({ url, fields: Object.keys(conn).join(', ') });
+  }
+  if (url) {
+    const normalized = normalizeLinkedInUrl(url);
+    connectionMapByUrl.set(normalized, conn);
+    
+    // Also extract username for matching
+    const username = extractLinkedInUsername(url) || conn.public_identifier?.toLowerCase();
+    if (username) {
+      connectionMapByUsername.set(username, conn);
+    }
+  }
+  
+  // Also match by public_identifier directly
+  if (conn.public_identifier) {
+    connectionMapByUsername.set(conn.public_identifier.toLowerCase(), conn);
   }
 });
+
+// Debug: Show sample URLs and identifiers from Unipile
+if (sampleUnipileUrls.length > 0) {
+  console.log('📋 Sample connections from Unipile:');
+  unipileConnections.slice(0, 5).forEach(conn => {
+    const username = extractLinkedInUsername(conn.public_profile_url) || conn.public_identifier;
+    console.log(`   - ${conn.first_name} ${conn.last_name}: username="${username}", public_identifier="${conn.public_identifier}"`);
+  });
+  console.log();
+}
 
 // Match contacts
 const matchedContacts = [];
 const unmatchedContacts = [];
+let sampleCsvUrls = [];
 
 contacts.forEach(contact => {
   const normalizedUrl = normalizeLinkedInUrl(contact.linkedin_url);
-  const match = connectionMap.get(normalizedUrl);
+  const username = extractLinkedInUsername(contact.linkedin_url);
+  if (sampleCsvUrls.length < 3) {
+    sampleCsvUrls.push({ original: contact.linkedin_url, normalized: normalizedUrl, username });
+  }
+  
+  // Try matching by URL first, then by username
+  let match = connectionMapByUrl.get(normalizedUrl);
+  if (!match && username) {
+    match = connectionMapByUsername.get(username);
+  }
   
   if (match) {
     matchedContacts.push({
       ...contact,
-      member_id: match.id,
-      linkedin_id: match.id,
-      full_name: match.display_name || `${contact.first_name}`,
+      member_id: match.member_id || match.id,
+      linkedin_id: match.member_id || match.id || match.linkedin_id,
+      full_name: `${match.first_name || ''} ${match.last_name || ''}`.trim() || match.display_name || match.name || `${contact.first_name} ${contact.last_name || ''}`.trim(),
       headline: match.headline,
-      profile_picture_url: match.profile_picture_url
+      profile_picture_url: match.profile_picture_url || match.picture_url || match.avatar_url,
+      linkedin_url: match.public_profile_url || contact.linkedin_url
     });
   } else {
     unmatchedContacts.push(contact);
   }
 });
+
+// Debug: Show sample CSV URLs
+if (sampleCsvUrls.length > 0) {
+  console.log('📋 Sample URLs from CSV:');
+  sampleCsvUrls.forEach(s => {
+    console.log(`   - Original: "${s.original}" → Normalized: "${s.normalized}"`);
+  });
+  console.log();
+}
 
 console.log(`✅ Matched: ${matchedContacts.length}`);
 console.log(`⚠️  Unmatched: ${unmatchedContacts.length}\n`);
@@ -162,8 +273,11 @@ if (unmatchedContacts.length > 0 && unmatchedContacts.length < 10) {
   console.log();
 }
 
-// Step 5: Import matched contacts to Supabase
+// Step 5: Import ALL contacts to Supabase (matched and unmatched)
+// For unmatched contacts, we'll look up member_id when sending
 console.log('💾 Importing contacts to Supabase...');
+console.log(`   Matched: ${matchedContacts.length} (will have member_id)`);
+console.log(`   Unmatched: ${unmatchedContacts.length} (will look up member_id when sending)\n`);
 
 // Import supabase client
 const { createClient } = await import('@supabase/supabase-js');
@@ -173,6 +287,7 @@ let imported = 0;
 let skipped = 0;
 let errors = 0;
 
+// Import matched contacts
 for (const contact of matchedContacts) {
   try {
     const { data, error } = await supabase
@@ -186,6 +301,48 @@ for (const contact of matchedContacts) {
         profile_picture_url: contact.profile_picture_url,
         relationship_strength: 'unknown',
         priority: 'medium',
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'linkedin_id',
+        ignoreDuplicates: false
+      })
+      .select();
+
+    if (error) {
+      console.error(`❌ Error importing ${contact.first_name}:`, error.message);
+      errors++;
+    } else {
+      imported++;
+      process.stdout.write(`\rImported: ${imported} | Errors: ${errors}`);
+    }
+  } catch (err) {
+    console.error(`❌ Exception importing ${contact.first_name}:`, err.message);
+    errors++;
+  }
+  
+  // Small delay to avoid rate limits
+  await new Promise(resolve => setTimeout(resolve, 100));
+}
+
+// Import unmatched contacts (without member_id - we'll look it up when sending)
+for (const contact of unmatchedContacts) {
+  try {
+    // Generate a unique temp ID from URL hash
+    const crypto = await import('crypto');
+    const urlHash = crypto.createHash('md5').update(contact.linkedin_url).digest('hex').substring(0, 16);
+    const tempId = `temp_${urlHash}`;
+    
+    const { data, error } = await supabase
+      .from('linkedin_connections')
+      .upsert({
+        linkedin_id: tempId, // Temporary - will update when we get real member_id
+        linkedin_url: contact.linkedin_url,
+        first_name: contact.first_name,
+        last_name: contact.last_name,
+        full_name: `${contact.first_name} ${contact.last_name || ''}`.trim(),
+        relationship_strength: 'unknown',
+        priority: 'medium',
+        notes: 'Member ID to be looked up when sending',
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'linkedin_id',
