@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "cron:process-messages": "node scripts/process-message-queue.js",
     "test-apis": "npx ts-node scripts/test-apis.ts",
     "test-parallel": "npx ts-node scripts/test-parallel.ts",
     "test-exa": "npx ts-node scripts/test-exa.ts",
