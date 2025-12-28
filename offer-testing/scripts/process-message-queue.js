@@ -117,14 +117,14 @@ async function processDueMessages() {
         .not('sent_at', 'is', null)
         .order('sent_at', { ascending: false })
         .limit(1)
-        .single(),
+        .maybeSingle(), // Use maybeSingle() instead of single() to handle no results
       supabase
         .from('messages')
         .select('sent_at')
         .not('sent_at', 'is', null)
         .order('sent_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle() // Use maybeSingle() instead of single() to handle no results
     ]);
 
     // Find the most recent sent time across both tables
@@ -203,6 +203,7 @@ async function processNetworkingMessages() {
     console.log('🔍 Checking for due networking messages...');
 
     // Get Unipile account
+    console.log(`📡 Fetching Unipile accounts from ${UNIPILE_DSN}/accounts`);
     const accountsResponse = await fetch(`${UNIPILE_DSN}/accounts`, {
       headers: {
         'X-API-KEY': UNIPILE_API_KEY,
@@ -210,19 +211,34 @@ async function processNetworkingMessages() {
       }
     });
 
+    if (!accountsResponse.ok) {
+      const errorText = await accountsResponse.text();
+      console.error(`❌ Unipile accounts API error: ${accountsResponse.status} - ${errorText}`);
+      return false;
+    }
+
     const accounts = await accountsResponse.json();
+    console.log(`📊 Found ${accounts.items?.length || 0} Unipile accounts`);
+    
     const linkedinAccount = accounts.items?.find(acc =>
       (acc.provider || acc.type || acc.platform || '').toUpperCase() === 'LINKEDIN'
     );
 
     if (!linkedinAccount) {
-      console.log('⚠️  No LinkedIn account found in Unipile');
+      console.error('❌ No LinkedIn account found in Unipile');
+      console.log('Available accounts:', accounts.items?.map(a => ({ 
+        id: a.id, 
+        provider: a.provider || a.type || a.platform,
+        name: a.name 
+      })));
       return false;
     }
 
     const unipileAccountId = linkedinAccount.id;
+    console.log(`✅ Using LinkedIn account: ${linkedinAccount.name || linkedinAccount.id} (${unipileAccountId})`);
 
     // Query due networking messages (only 1 per run for spacing)
+    console.log('🔍 Querying for due networking messages...');
     const { data: networkingMessages, error } = await supabase
       .from('networking_outreach')
       .select(`
@@ -237,6 +253,7 @@ async function processNetworkingMessages() {
 
     if (error) {
       console.error('❌ Error fetching networking messages:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       return false;
     }
 
@@ -245,27 +262,55 @@ async function processNetworkingMessages() {
       return false;
     }
 
-    console.log(`📤 Processing ${networkingMessages.length} networking message(s)`);
+    console.log(`📤 Found ${networkingMessages.length} due networking message(s)`);
+    console.log(`📝 Message ID: ${networkingMessages[0].id}`);
 
     // Only process first message (limit(1) ensures only 1 in array)
     const outreach = networkingMessages[0];
     const connection = outreach.linkedin_connections;
 
+    if (!connection) {
+      console.error(`❌ No connection found for outreach ${outreach.id}`);
+      await supabase
+        .from('networking_outreach')
+        .update({
+          status: 'failed',
+          skip_reason: 'Connection not found'
+        })
+        .eq('id', outreach.id);
+      return false;
+    }
+
+    console.log(`👤 Processing message for: ${connection.first_name} ${connection.last_name || ''}`);
+    console.log(`🔗 LinkedIn ID: ${connection.linkedin_id || 'MISSING'}`);
+
     // Skip if no valid linkedin_id
     if (!connection.linkedin_id || connection.linkedin_id.startsWith('temp_')) {
-      console.log(`⚠️  Skipping ${connection.first_name}: No valid linkedin_id`);
+      console.log(`⚠️  Skipping ${connection.first_name}: Invalid linkedin_id (${connection.linkedin_id})`);
       await supabase
         .from('networking_outreach')
         .update({
           status: 'skipped',
-          skip_reason: 'No valid linkedin_id'
+          skip_reason: `No valid linkedin_id: ${connection.linkedin_id || 'null'}`
         })
         .eq('id', outreach.id);
       return false; // Skipped, not processed
     }
 
     // Send via Unipile
+    console.log(`📤 Sending message via Unipile API...`);
+    console.log(`   Account ID: ${unipileAccountId}`);
+    console.log(`   Attendee ID: ${connection.linkedin_id}`);
+    console.log(`   Message length: ${outreach.personalized_message.length} chars`);
+    
     try {
+      const requestBody = {
+        account_id: unipileAccountId,
+        attendees_ids: [connection.linkedin_id],
+        text: outreach.personalized_message,
+      };
+      
+      console.log(`📡 POST ${UNIPILE_DSN}/chats`);
       const response = await fetch(`${UNIPILE_DSN}/chats`, {
         method: 'POST',
         headers: {
@@ -273,19 +318,19 @@ async function processNetworkingMessages() {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({
-          account_id: unipileAccountId,
-          attendees_ids: [connection.linkedin_id],
-          text: outreach.personalized_message,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log(`📥 Response status: ${response.status} ${response.statusText}`);
+
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
+        const errorBody = await response.json().catch(() => ({ text: await response.text().catch(() => 'Unknown error') }));
+        console.error(`❌ Unipile API error response:`, errorBody);
         throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorBody)}`);
       }
 
       const result = await response.json();
+      console.log(`✅ Unipile API success:`, result);
 
       // Update status
       await supabase
@@ -636,15 +681,28 @@ ${message.body}
 // Main execution
 async function main() {
   console.log('🚀 Message Queue Processor Starting...');
+  console.log(`⏰ Current time: ${new Date().toISOString()}`);
+  console.log(`🔧 Environment check:`);
+  console.log(`   UNIPILE_DSN: ${UNIPILE_DSN ? 'SET' : 'MISSING'}`);
+  console.log(`   UNIPILE_API_KEY: ${UNIPILE_API_KEY ? 'SET' : 'MISSING'}`);
+  console.log(`   SUPABASE_URL: ${SUPABASE_URL ? 'SET' : 'MISSING'}`);
+  console.log(`   SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY ? 'SET' : 'MISSING'}`);
+  console.log(`   RESEND_API_KEY: ${RESEND_API_KEY ? 'SET' : 'MISSING'}`);
+  console.log(`   NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL ? NOTIFICATION_EMAIL : 'MISSING'}`);
 
   try {
     await processDueMessages();
     console.log('✅ Processing complete');
   } catch (error) {
     console.error('❌ Fatal error:', error);
+    console.error('Error stack:', error.stack);
     process.exit(1);
   }
 }
 
 // Run once and exit (for Railway cron)
-main().catch(console.error);
+main().catch((error) => {
+  console.error('❌ Unhandled error in main:', error);
+  console.error('Error stack:', error.stack);
+  process.exit(1);
+});
