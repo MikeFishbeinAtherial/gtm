@@ -35,9 +35,16 @@ dotenv.config();
 const UNIPILE_DSN = process.env.UNIPILE_DSN;
 const UNIPILE_API_KEY = process.env.UNIPILE_API_KEY;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY 
-  || process.env.SUPABASE_SECRET_KEY 
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+  || process.env.SUPABASE_SECRET_KEY
   || process.env.SUPABASE_SERVICE_KEY;
+
+// Notification settings
+const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
+// Track notification state
+let dailyLimitNotified = false;
 
 // Safety settings (same as send-networking-campaign.js)
 const MAX_MESSAGES_PER_DAY = 50;
@@ -83,6 +90,38 @@ function formatDelay(ms) {
   return `${minutes}m ${seconds}s`;
 }
 
+// Send email notification via Resend
+async function sendNotification(subject, body) {
+  if (!NOTIFICATION_EMAIL || !RESEND_API_KEY) {
+    console.log('⚠️  Notifications disabled (missing NOTIFICATION_EMAIL or RESEND_API_KEY)');
+    return;
+  }
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'notifications@atherial.ai',
+        to: [NOTIFICATION_EMAIL],
+        subject: subject,
+        text: body
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Resend API error: ${response.status}`);
+    }
+
+    console.log('📧 Notification sent successfully');
+  } catch (error) {
+    console.warn('⚠️  Failed to send notification:', error.message);
+  }
+}
+
 async function sendMessage(outreach, connection, unipileAccountId) {
   try {
     const response = await fetch(`${UNIPILE_DSN}/chats`, {
@@ -118,6 +157,12 @@ async function runWorker() {
   console.log(`   • Delay between messages: ${MIN_DELAY_MINUTES}-${MAX_DELAY_MINUTES} minutes`);
   console.log(`   • Business hours: ${BUSINESS_HOURS_START} AM - ${BUSINESS_HOURS_END} PM ET (daily except Christmas)`);
   console.log(`   • Check interval: ${CHECK_INTERVAL_MS / 1000} seconds\n`);
+
+  // Send startup notification
+  await sendNotification(
+    '🚀 Campaign Worker Started',
+    `Campaign worker has started successfully.\n\nSafety Settings:\n• Max messages/day: ${MAX_MESSAGES_PER_DAY}\n• Delay: ${MIN_DELAY_MINUTES}-${MAX_DELAY_MINUTES} minutes\n• Business hours: ${BUSINESS_HOURS_START} AM - ${BUSINESS_HOURS_END} PM ET\n• Check interval: ${CHECK_INTERVAL_MS / 1000} seconds`
+  );
 
   // Get Unipile account
   const accountsResponse = await fetch(`${UNIPILE_DSN}/accounts`, {
@@ -166,6 +211,7 @@ async function runWorker() {
       if (currentDate !== lastSendDate) {
         sentToday = 0;
         lastSendDate = currentDate;
+        dailyLimitNotified = false; // Reset notification flag for new day
         console.log(`📅 New day: ${currentDate} (counter reset)\n`);
       }
 
@@ -190,6 +236,16 @@ async function runWorker() {
       // Check daily limit
       if (sentToday >= MAX_MESSAGES_PER_DAY) {
         console.log(`🛑 Daily limit reached (${sentToday}/${MAX_MESSAGES_PER_DAY})`);
+
+        // Send daily limit notification (only once per day)
+        if (!dailyLimitNotified) {
+          await sendNotification(
+            '🛑 Daily Message Limit Reached',
+            `Campaign worker has reached the daily limit of ${MAX_MESSAGES_PER_DAY} messages.\n\nSent today: ${sentToday}\nCampaign will resume tomorrow.\n\nThe worker will continue checking but won't send new messages until the daily counter resets.`
+          );
+          dailyLimitNotified = true;
+        }
+
         await new Promise(resolve => setTimeout(resolve, CHECK_INTERVAL_MS));
         continue;
       }
@@ -231,7 +287,7 @@ async function runWorker() {
 
       if (!outreachRecords || outreachRecords.length === 0) {
         console.log('✅ No pending messages. Campaign complete!');
-        
+
         await supabase
           .from('networking_campaign_batches')
           .update({
@@ -240,7 +296,13 @@ async function runWorker() {
             updated_at: new Date().toISOString()
           })
           .eq('id', campaign.id);
-        
+
+        // Send completion notification
+        await sendNotification(
+          '✅ Campaign Completed Successfully',
+          `Networking campaign "${campaign.name}" has completed!\n\nFinal Stats:\n• Total messages sent: ${campaign.sent_count}\n• Campaign completed at: ${new Date().toISOString()}\n\nThe worker will now stop.`
+        );
+
         break;
       }
 
@@ -298,7 +360,7 @@ async function runWorker() {
         await new Promise(resolve => setTimeout(resolve, delay));
       } else {
         console.log(`   ❌ Failed: ${sendResult.error}`);
-        
+
         await supabase
           .from('networking_outreach')
           .update({
@@ -306,6 +368,12 @@ async function runWorker() {
             skip_reason: sendResult.error
           })
           .eq('id', outreach.id);
+
+        // Send failure notification
+        await sendNotification(
+          '❌ Message Send Failed',
+          `Failed to send message to ${connection.first_name} ${connection.last_name}\n\nError: ${sendResult.error}\n\nMessage ID: ${outreach.id}\nRecipient: ${connection.linkedin_url}\n\nThe worker will continue with the next message.`
+        );
 
         // Wait a bit before retrying
         await new Promise(resolve => setTimeout(resolve, CHECK_INTERVAL_MS));
@@ -321,19 +389,31 @@ async function runWorker() {
 }
 
 // Handle graceful shutdown
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('\n\n⏸️  Worker stopping gracefully...');
+  await sendNotification(
+    '⏸️ Campaign Worker Stopped',
+    'Campaign worker was stopped manually (SIGINT).\n\nThe worker can be restarted to resume sending messages.'
+  );
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('\n\n⏸️  Worker stopping gracefully...');
+  await sendNotification(
+    '⏸️ Campaign Worker Stopped',
+    'Campaign worker was stopped (SIGTERM).\n\nThis usually happens when Railway restarts the service.'
+  );
   process.exit(0);
 });
 
 // Start worker
-runWorker().catch(error => {
+runWorker().catch(async error => {
   console.error('❌ Fatal error:', error);
+  await sendNotification(
+    '❌ Campaign Worker Fatal Error',
+    `Campaign worker encountered a fatal error and stopped.\n\nError: ${error.message}\n\nStack trace:\n${error.stack}\n\nManual intervention required to restart the worker.`
+  );
   process.exit(1);
 });
 

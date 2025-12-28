@@ -35,8 +35,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 const { createClient } = await import('@supabase/supabase-js');
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-// Import our scheduler service
-import { scheduleNewMessages } from '../src/lib/services/message-scheduler.js';
+// Simple scheduling without complex service dependencies
 
 async function scheduleExistingNetworking() {
   console.log('🔄 Scheduling existing networking messages...\n');
