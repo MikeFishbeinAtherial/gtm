@@ -231,11 +231,20 @@ CREATE TABLE campaigns (
     
     -- Channel
     channel TEXT NOT NULL CHECK (channel IN ('email', 'linkedin', 'multi')),
+    campaign_type TEXT DEFAULT 'cold_outreach' CHECK (campaign_type IN ('networking', 'cold_outreach')),
     account_id UUID REFERENCES accounts(id),
     
     -- Configuration
     target_criteria JSONB,
     sequence_config JSONB,
+    scheduling_config JSONB DEFAULT '{
+        "daily_limit": 40,
+        "min_interval_minutes": 5,
+        "max_interval_minutes": 10,
+        "business_hours_start": 8,
+        "business_hours_end": 19,
+        "send_days": [0,1,2,3,4,5,6]
+    }'::jsonb,
     
     -- Status
     status TEXT DEFAULT 'draft' CHECK (status IN (
@@ -364,6 +373,9 @@ CREATE INDEX idx_messages_contact ON messages(contact_id);
 CREATE INDEX idx_messages_account ON messages(account_id);
 CREATE INDEX idx_messages_status ON messages(status);
 CREATE INDEX idx_messages_scheduled ON messages(scheduled_at) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_messages_scheduled_channel
+  ON messages(channel, scheduled_at)
+  WHERE status = 'pending';
 
 -- ============================================
 -- ACCOUNT_ACTIVITY: Rate limiting log
@@ -636,3 +648,69 @@ BEGIN
     WHERE id = p_account_id;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ============================================
+-- MONITORING VIEWS
+-- ============================================
+
+-- Recent activity view
+CREATE OR REPLACE VIEW message_activity_recent AS
+SELECT
+  m.id,
+  m.contact_id,
+  m.campaign_id,
+  m.channel,
+  m.subject,
+  m.body,
+  m.scheduled_at,
+  m.sent_at,
+  m.status,
+  c.first_name || ' ' || c.last_name as contact_name,
+  c.company_name,
+  camp.name as campaign_name,
+  a.name as account_name
+FROM messages m
+LEFT JOIN contacts c ON m.contact_id = c.id
+LEFT JOIN campaigns camp ON m.campaign_id = camp.id
+LEFT JOIN accounts a ON m.account_id = a.id
+ORDER BY m.sent_at DESC
+LIMIT 100;
+
+-- Today's sending progress
+CREATE OR REPLACE VIEW today_sending_progress AS
+SELECT
+  channel,
+  status,
+  count(*) as message_count,
+  min(sent_at) as first_sent,
+  max(sent_at) as last_sent
+FROM messages
+WHERE sent_at::date = CURRENT_DATE
+GROUP BY channel, status
+ORDER BY channel, status;
+
+-- Campaign progress view
+CREATE OR REPLACE VIEW campaign_progress AS
+SELECT
+  c.id,
+  c.name,
+  c.status,
+  c.total_contacts,
+  c.contacts_sent,
+  c.contacts_remaining,
+  m.sent_today,
+  m.last_sent_at,
+  c.created_at,
+  c.first_send_at,
+  c.last_send_at
+FROM campaigns c
+LEFT JOIN (
+  SELECT
+    campaign_id,
+    count(*) as sent_today,
+    max(sent_at) as last_sent_at
+  FROM messages
+  WHERE sent_at::date = CURRENT_DATE
+  GROUP BY campaign_id
+) m ON c.id = m.campaign_id
+ORDER BY c.created_at DESC;

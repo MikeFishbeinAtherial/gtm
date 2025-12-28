@@ -1,27 +1,25 @@
-# /offer-send - Review and Send Messages
+# /offer-send - Schedule and Send Messages
 
-Review queued messages and send them safely via Unipile, respecting LinkedIn rate limits.
+Schedule messages with smart spacing and send them automatically via Railway cron jobs.
 
-**⚠️ This command will send actual messages. Make sure you've reviewed your leads and copy first.**
-
----
-
-## Status: NOT YET IMPLEMENTED
-
-This is a stub document describing the intended workflow. Implementation coming in V2.
-
-**For now:** Manually send messages or use Unipile UI directly.
+**⚠️ This command will create scheduled messages that WILL BE SENT AUTOMATICALLY. Make sure you've reviewed your leads and copy first.**
 
 ---
 
-## What This Command Will Do
+## Status: IMPLEMENTED ✅
 
-1. **Load campaign queue** → Get all contacts with status = 'queued'
-2. **Match copy to contacts** → Select appropriate email/LinkedIn variant
-3. **Personalize messages** → Insert company/contact-specific details
-4. **Show review UI** → User approves/edits/skips each message
-5. **Send via Unipile** → Respects rate limits and business hours
-6. **Track results** → Log to database, monitor replies
+The scheduling system is now live! Messages are scheduled at campaign creation time and sent automatically by Railway cron jobs.
+
+---
+
+## What This Command Does
+
+1. **Generate message queue** → Create personalized messages for all campaign contacts
+2. **Schedule with smart spacing** → Use MessageScheduler service to spread messages over time
+3. **Insert to database** → Store messages with `scheduled_at` timestamps and `status = 'pending'`
+4. **Railway cron sends automatically** → Every 5 minutes, cron job sends due messages via Unipile
+5. **Real-time notifications** → N8N webhooks send Slack/email alerts for each message sent
+6. **Monitor progress** → Use Supabase views to track sending progress and results
 
 ---
 
@@ -52,6 +50,98 @@ This is a stub document describing the intended workflow. Implementation coming 
 /offer-send sales-roleplay-trainer hiring-signal-q1
 /offer-send sales-roleplay-trainer pvp-benchmarks --batch 20
 /offer-send sales-roleplay-trainer tech-stack --dry-run
+```
+
+---
+
+## Message Scheduling System
+
+When launching a campaign, the system automatically schedules messages:
+
+### How It Works
+
+1. **Cursor calls Scheduler Service** when campaign is created
+2. **Scheduler queries existing queue** - finds last scheduled message per channel
+3. **Scheduler assigns `scheduled_at`** to each new message:
+   - 5-10 min random intervals between messages
+   - Max 40 LinkedIn messages per business day
+   - Business hours only (9 AM - 5 PM)
+   - Weekdays only (Mon-Fri)
+4. **Messages inserted to Supabase** with their scheduled timestamps
+
+### Key File: `src/lib/services/message-scheduler.ts`
+
+Always use this service when creating messages:
+
+```typescript
+import { scheduleNewMessages } from '@/lib/services/message-scheduler';
+
+// After generating messages, schedule them
+await scheduleNewMessages(campaignId, messages);
+```
+
+### Configuration
+
+Default scheduling config (can be overridden per campaign):
+
+```json
+{
+  "daily_limit": 40,
+  "min_interval_minutes": 5,
+  "max_interval_minutes": 10,
+  "business_hours_start": 8,
+  "business_hours_end": 19,
+  "send_days": [0, 1, 2, 3, 4, 5, 6]
+}
+```
+
+### Campaign Types
+
+Choose the appropriate campaign type for your outreach:
+
+**Cold Outreach** (`campaign_type: 'cold_outreach'`)
+- For prospecting new contacts
+- Never messages 1st degree LinkedIn connections
+- Sends connection requests to 2nd/3rd degree connections
+
+**Networking** (`campaign_type: 'networking'`)
+- For reaching existing network
+- Allows messaging 1st degree connections
+- Sends DMs to all connection degrees
+
+### Railway Cron Job
+
+- Runs every 5 minutes
+- Queries: `WHERE scheduled_at <= NOW() AND status = 'pending' LIMIT 1`
+- Sends only 1 message per cron run (spaced 5-10 min apart)
+- Respects campaign type rules for connection messaging
+- Script: `scripts/process-message-queue.js`
+
+### Monitoring
+
+Use these Supabase views to monitor progress:
+
+```sql
+-- Recent activity
+SELECT * FROM message_activity_recent LIMIT 10;
+
+-- Today's progress
+SELECT * FROM today_sending_progress;
+
+-- Campaign overview
+SELECT * FROM campaign_progress;
+```
+
+### Emergency Controls
+
+To stop sending immediately:
+
+```sql
+-- Pause all campaigns
+UPDATE campaigns SET status = 'paused' WHERE status = 'active';
+
+-- Stop Railway service in Railway Dashboard
+-- Go to Railway → Your Service → Stop
 ```
 
 ---
