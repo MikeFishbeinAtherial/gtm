@@ -5,10 +5,10 @@
     "buildCommand": "npm run build"
   },
   "deploy": {
-    "startCommand": "npm start",
+    "startCommand": "cd offer-testing && node scripts/start-service.js",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   },
 
-  "_comment_scheduled_deployments": "Railway scheduled deployments must be configured in the Railway Dashboard, not in this file. Go to Railway Dashboard → Your Service → Settings → Scheduled Deployments and add: Command: 'node scripts/process-message-queue.js', Schedule: '*/5 * * * *' (every 5 minutes)"
+  "_comment_scheduled_deployments": "Railway cron jobs run the same startCommand as regular deployments. Our start-service.js script automatically detects cron runs and executes the message processor instead of the web app."
 }

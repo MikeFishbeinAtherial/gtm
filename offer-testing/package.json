@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "railway:start": "node scripts/start-service.js",
     "cron:process-messages": "node scripts/process-message-queue.js",
     "test-apis": "npx ts-node scripts/test-apis.ts",
     "test-parallel": "npx ts-node scripts/test-parallel.ts",

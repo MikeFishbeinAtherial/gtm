@@ -324,7 +324,16 @@ async function processNetworkingMessages() {
       console.log(`📥 Response status: ${response.status} ${response.statusText}`);
 
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({ text: await response.text().catch(() => 'Unknown error') }));
+        let errorBody;
+        try {
+          errorBody = await response.json();
+        } catch {
+          try {
+            errorBody = { text: await response.text() };
+          } catch {
+            errorBody = { text: 'Unknown error' };
+          }
+        }
         console.error(`❌ Unipile API error response:`, errorBody);
         throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorBody)}`);
       }
@@ -678,6 +687,69 @@ ${message.body}
   }
 }
 
+// Send test email notification every cron run
+async function sendCronTestEmail() {
+  if (!RESEND_API_KEY || !NOTIFICATION_EMAIL) {
+    console.log('⚠️  Test email disabled (missing RESEND_API_KEY or NOTIFICATION_EMAIL)');
+    return;
+  }
+
+  try {
+    console.log('📧 Sending cron test notification email...');
+
+    const subject = `🔄 Cron Run: ${new Date().toISOString()}`;
+
+    // Check pending messages
+    const [networkingResult, messagesResult] = await Promise.all([
+      supabase.from('networking_outreach').select('id', { count: 'exact' }).eq('status', 'pending').lte('scheduled_at', new Date().toISOString()),
+      supabase.from('messages').select('id', { count: 'exact' }).eq('status', 'pending').lte('scheduled_at', new Date().toISOString())
+    ]);
+
+    const networkingPending = networkingResult.count || 0;
+    const messagesPending = messagesResult.count || 0;
+
+    const body = `
+🚀 Cron Execution Report
+⏰ Time: ${new Date().toISOString()}
+
+📊 Queue Status:
+• Networking messages pending: ${networkingPending}
+• Regular messages pending: ${messagesPending}
+
+🔧 Environment Status:
+• UNIPILE_DSN: ${UNIPILE_DSN ? '✅ SET' : '❌ MISSING'}
+• UNIPILE_API_KEY: ${UNIPILE_API_KEY ? '✅ SET' : '❌ MISSING'}
+• SUPABASE_URL: ${SUPABASE_URL ? '✅ SET' : '❌ MISSING'}
+• SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY ? '✅ SET' : '❌ MISSING'}
+• RESEND_API_KEY: ${RESEND_API_KEY ? '✅ SET' : '❌ MISSING'}
+
+This email confirms the cron job ran successfully.
+    `.trim();
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'notifications@atherial.ai',
+        to: [NOTIFICATION_EMAIL],
+        subject: subject,
+        text: body
+      })
+    });
+
+    if (response.ok) {
+      console.log('✅ Cron test email sent successfully');
+    } else {
+      console.error('❌ Failed to send cron test email:', response.status, response.statusText);
+    }
+  } catch (error) {
+    console.warn('⚠️ Failed to send cron test email:', error.message);
+  }
+}
+
 // Main execution
 async function main() {
   console.log('🚀 Message Queue Processor Starting...');
@@ -689,6 +761,9 @@ async function main() {
   console.log(`   SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY ? 'SET' : 'MISSING'}`);
   console.log(`   RESEND_API_KEY: ${RESEND_API_KEY ? 'SET' : 'MISSING'}`);
   console.log(`   NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL ? NOTIFICATION_EMAIL : 'MISSING'}`);
+
+  // Always send test email to verify cron is running
+  await sendCronTestEmail();
 
   try {
     await processDueMessages();
