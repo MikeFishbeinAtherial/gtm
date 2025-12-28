@@ -108,10 +108,60 @@ async function processDueMessages() {
   console.log(`🔍 Checking for due messages... (${new Date().toISOString()})`);
 
   try {
-    // First, check networking_outreach messages
-    await processNetworkingMessages();
+    // Check spacing across ALL message types (ensure 5+ minutes since last send)
+    // Get most recent sent message from either table
+    const [networkingLastSent, regularLastSent] = await Promise.all([
+      supabase
+        .from('networking_outreach')
+        .select('sent_at')
+        .not('sent_at', 'is', null)
+        .order('sent_at', { ascending: false })
+        .limit(1)
+        .single(),
+      supabase
+        .from('messages')
+        .select('sent_at')
+        .not('sent_at', 'is', null)
+        .order('sent_at', { ascending: false })
+        .limit(1)
+        .single()
+    ]);
 
-    // Then check regular messages table
+    // Find the most recent sent time across both tables
+    let lastSentTime = null;
+    if (networkingLastSent.data?.sent_at) {
+      lastSentTime = new Date(networkingLastSent.data.sent_at);
+    }
+    if (regularLastSent.data?.sent_at) {
+      const regularTime = new Date(regularLastSent.data.sent_at);
+      if (!lastSentTime || regularTime > lastSentTime) {
+        lastSentTime = regularTime;
+      }
+    }
+
+    // Check spacing (5 minutes minimum between ANY message sends)
+    if (lastSentTime) {
+      const timeSinceLastSend = Date.now() - lastSentTime.getTime();
+      const minIntervalMs = 5 * 60 * 1000; // 5 minutes minimum
+
+      if (timeSinceLastSend < minIntervalMs) {
+        const waitMinutes = Math.ceil((minIntervalMs - timeSinceLastSend) / 60000);
+        const lastSentMinutes = Math.floor(timeSinceLastSend / 60000);
+        console.log(`⏳ Too soon since last send (${lastSentMinutes}m ago). Need ${waitMinutes} more minutes for spacing.`);
+        return; // Skip this run to maintain spacing
+      }
+    }
+
+    // Process networking messages first (if any due)
+    const networkingProcessed = await processNetworkingMessages();
+    
+    // If we processed a networking message, skip regular messages this run (spacing)
+    if (networkingProcessed) {
+      console.log('✅ Processed networking message. Skipping regular messages this run for spacing.');
+      return;
+    }
+
+    // Then check regular messages table (only if no networking message was sent)
     const { data: dueMessages, error } = await supabase
       .from('messages')
       .select(`
@@ -140,9 +190,7 @@ async function processDueMessages() {
     // Process each message
     for (const message of dueMessages) {
       await processMessage(message);
-
-      // Small delay between messages (30 seconds)
-      await sleep(30_000);
+      // No sleep needed - we only process 1 per run, spacing handled by cron frequency
     }
 
   } catch (error) {
@@ -169,12 +217,12 @@ async function processNetworkingMessages() {
 
     if (!linkedinAccount) {
       console.log('⚠️  No LinkedIn account found in Unipile');
-      return;
+      return false;
     }
 
     const unipileAccountId = linkedinAccount.id;
 
-    // Query due networking messages
+    // Query due networking messages (only 1 per run for spacing)
     const { data: networkingMessages, error } = await supabase
       .from('networking_outreach')
       .select(`
@@ -185,111 +233,118 @@ async function processNetworkingMessages() {
       .not('scheduled_at', 'is', null)
       .lte('scheduled_at', new Date().toISOString())
       .order('scheduled_at', { ascending: true })
-      .limit(1); // Only 1 per cron run for safety
+      .limit(1); // Only 1 per cron run - spacing handled by cron frequency (5 min) + last_sent check
 
     if (error) {
       console.error('❌ Error fetching networking messages:', error);
-      return;
+      return false;
     }
 
     if (!networkingMessages || networkingMessages.length === 0) {
       console.log('✅ No networking messages due at this time');
-      return;
+      return false;
     }
 
     console.log(`📤 Processing ${networkingMessages.length} networking message(s)`);
 
-    for (const outreach of networkingMessages) {
-      const connection = outreach.linkedin_connections;
+    // Only process first message (limit(1) ensures only 1 in array)
+    const outreach = networkingMessages[0];
+    const connection = outreach.linkedin_connections;
 
-      // Skip if no valid linkedin_id
-      if (!connection.linkedin_id || connection.linkedin_id.startsWith('temp_')) {
-        console.log(`⚠️  Skipping ${connection.first_name}: No valid linkedin_id`);
-        await supabase
-          .from('networking_outreach')
-          .update({
-            status: 'skipped',
-            skip_reason: 'No valid linkedin_id'
-          })
-          .eq('id', outreach.id);
-        continue;
+    // Skip if no valid linkedin_id
+    if (!connection.linkedin_id || connection.linkedin_id.startsWith('temp_')) {
+      console.log(`⚠️  Skipping ${connection.first_name}: No valid linkedin_id`);
+      await supabase
+        .from('networking_outreach')
+        .update({
+          status: 'skipped',
+          skip_reason: 'No valid linkedin_id'
+        })
+        .eq('id', outreach.id);
+      return false; // Skipped, not processed
+    }
+
+    // Send via Unipile
+    try {
+      const response = await fetch(`${UNIPILE_DSN}/chats`, {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': UNIPILE_API_KEY,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          account_id: unipileAccountId,
+          attendees_ids: [connection.linkedin_id],
+          text: outreach.personalized_message,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorBody)}`);
       }
 
-      // Send via Unipile
-      try {
-        const response = await fetch(`${UNIPILE_DSN}/chats`, {
-          method: 'POST',
-          headers: {
-            'X-API-KEY': UNIPILE_API_KEY,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify({
-            account_id: unipileAccountId,
-            attendees_ids: [connection.linkedin_id],
-            text: outreach.personalized_message,
-          }),
-        });
+      const result = await response.json();
 
-        if (!response.ok) {
-          const errorBody = await response.json().catch(() => ({}));
-          throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorBody)}`);
-        }
+      // Update status
+      await supabase
+        .from('networking_outreach')
+        .update({
+          status: 'sent',
+          sent_at: new Date().toISOString()
+        })
+        .eq('id', outreach.id);
 
-        const result = await response.json();
+      // Update campaign batch stats
+      if (outreach.batch_id) {
+        const { data: batch } = await supabase
+          .from('networking_campaign_batches')
+          .select('sent_count')
+          .eq('id', outreach.batch_id)
+          .single();
 
-        // Update status
-        await supabase
-          .from('networking_outreach')
-          .update({
-            status: 'sent',
-            sent_at: new Date().toISOString()
-          })
-          .eq('id', outreach.id);
-
-        // Update campaign batch stats
-        if (outreach.batch_id) {
-          const { data: batch } = await supabase
+        if (batch) {
+          await supabase
             .from('networking_campaign_batches')
-            .select('sent_count')
-            .eq('id', outreach.batch_id)
-            .single();
-
-          if (batch) {
-            await supabase
-              .from('networking_campaign_batches')
-              .update({
-                sent_count: (batch.sent_count || 0) + 1,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', outreach.batch_id);
-          }
+            .update({
+              sent_count: (batch.sent_count || 0) + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', outreach.batch_id);
         }
-
-        // Send success notification
-        await sendNetworkingNotification(outreach, connection, { success: true, message_id: result.id });
-
-        console.log(`✅ Networking message sent to ${connection.first_name} ${connection.last_name || ''}`);
-
-      } catch (error) {
-        console.error(`❌ Failed to send networking message:`, error.message);
-
-        // Update status to failed
-        await supabase
-          .from('networking_outreach')
-          .update({
-            status: 'failed',
-            skip_reason: error.message
-          })
-          .eq('id', outreach.id);
-
-        // Send failure notification
-        await sendNetworkingNotification(outreach, connection, { success: false, error: error.message });
       }
+
+      // Send success notification
+      await sendNetworkingNotification(outreach, connection, { success: true, message_id: result.id });
+
+      console.log(`✅ Networking message sent to ${connection.first_name} ${connection.last_name || ''}`);
+      
+      // Return true - we processed a message
+      return true;
+
+    } catch (error) {
+      console.error(`❌ Failed to send networking message:`, error.message);
+
+      // Update status to failed
+      await supabase
+        .from('networking_outreach')
+        .update({
+          status: 'failed',
+          skip_reason: error.message
+        })
+        .eq('id', outreach.id);
+
+      // Send failure notification
+      await sendNetworkingNotification(outreach, connection, { success: false, error: error.message });
+      
+      // Return true - we attempted to process it (spacing still applies)
+      return true;
     }
 
   } catch (error) {
     console.error('❌ Error processing networking messages:', error);
+    return false;
   }
 }
 
