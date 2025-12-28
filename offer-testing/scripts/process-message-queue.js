@@ -108,7 +108,10 @@ async function processDueMessages() {
   console.log(`🔍 Checking for due messages... (${new Date().toISOString()})`);
 
   try {
-    // Query due messages with full context
+    // First, check networking_outreach messages
+    await processNetworkingMessages();
+
+    // Then check regular messages table
     const { data: dueMessages, error } = await supabase
       .from('messages')
       .select(`
@@ -118,9 +121,9 @@ async function processDueMessages() {
         account:accounts(*)
       `)
       .eq('status', 'pending')
-    .lte('scheduled_at', new Date().toISOString())
-    .order('scheduled_at')
-    .limit(1); // Safety cap - only 1 message per cron run
+      .lte('scheduled_at', new Date().toISOString())
+      .order('scheduled_at')
+      .limit(1); // Safety cap - only 1 message per cron run
 
     if (error) {
       console.error('❌ Database query error:', error);
@@ -128,7 +131,7 @@ async function processDueMessages() {
     }
 
     if (!dueMessages || dueMessages.length === 0) {
-      console.log('✅ No messages due at this time');
+      console.log('✅ No regular messages due at this time');
       return;
     }
 
@@ -144,6 +147,149 @@ async function processDueMessages() {
 
   } catch (error) {
     console.error('❌ Error in processDueMessages:', error);
+  }
+}
+
+async function processNetworkingMessages() {
+  try {
+    console.log('🔍 Checking for due networking messages...');
+
+    // Get Unipile account
+    const accountsResponse = await fetch(`${UNIPILE_DSN}/accounts`, {
+      headers: {
+        'X-API-KEY': UNIPILE_API_KEY,
+        'Accept': 'application/json'
+      }
+    });
+
+    const accounts = await accountsResponse.json();
+    const linkedinAccount = accounts.items?.find(acc =>
+      (acc.provider || acc.type || acc.platform || '').toUpperCase() === 'LINKEDIN'
+    );
+
+    if (!linkedinAccount) {
+      console.log('⚠️  No LinkedIn account found in Unipile');
+      return;
+    }
+
+    const unipileAccountId = linkedinAccount.id;
+
+    // Query due networking messages
+    const { data: networkingMessages, error } = await supabase
+      .from('networking_outreach')
+      .select(`
+        *,
+        linkedin_connections!inner(*)
+      `)
+      .eq('status', 'pending')
+      .not('scheduled_at', 'is', null)
+      .lte('scheduled_at', new Date().toISOString())
+      .order('scheduled_at', { ascending: true })
+      .limit(1); // Only 1 per cron run for safety
+
+    if (error) {
+      console.error('❌ Error fetching networking messages:', error);
+      return;
+    }
+
+    if (!networkingMessages || networkingMessages.length === 0) {
+      console.log('✅ No networking messages due at this time');
+      return;
+    }
+
+    console.log(`📤 Processing ${networkingMessages.length} networking message(s)`);
+
+    for (const outreach of networkingMessages) {
+      const connection = outreach.linkedin_connections;
+
+      // Skip if no valid linkedin_id
+      if (!connection.linkedin_id || connection.linkedin_id.startsWith('temp_')) {
+        console.log(`⚠️  Skipping ${connection.first_name}: No valid linkedin_id`);
+        await supabase
+          .from('networking_outreach')
+          .update({
+            status: 'skipped',
+            skip_reason: 'No valid linkedin_id'
+          })
+          .eq('id', outreach.id);
+        continue;
+      }
+
+      // Send via Unipile
+      try {
+        const response = await fetch(`${UNIPILE_DSN}/chats`, {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': UNIPILE_API_KEY,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            account_id: unipileAccountId,
+            attendees_ids: [connection.linkedin_id],
+            text: outreach.personalized_message,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => ({}));
+          throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorBody)}`);
+        }
+
+        const result = await response.json();
+
+        // Update status
+        await supabase
+          .from('networking_outreach')
+          .update({
+            status: 'sent',
+            sent_at: new Date().toISOString()
+          })
+          .eq('id', outreach.id);
+
+        // Update campaign batch stats
+        if (outreach.batch_id) {
+          const { data: batch } = await supabase
+            .from('networking_campaign_batches')
+            .select('sent_count')
+            .eq('id', outreach.batch_id)
+            .single();
+
+          if (batch) {
+            await supabase
+              .from('networking_campaign_batches')
+              .update({
+                sent_count: (batch.sent_count || 0) + 1,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', outreach.batch_id);
+          }
+        }
+
+        // Send success notification
+        await sendNetworkingNotification(outreach, connection, { success: true, message_id: result.id });
+
+        console.log(`✅ Networking message sent to ${connection.first_name} ${connection.last_name || ''}`);
+
+      } catch (error) {
+        console.error(`❌ Failed to send networking message:`, error.message);
+
+        // Update status to failed
+        await supabase
+          .from('networking_outreach')
+          .update({
+            status: 'failed',
+            skip_reason: error.message
+          })
+          .eq('id', outreach.id);
+
+        // Send failure notification
+        await sendNetworkingNotification(outreach, connection, { success: false, error: error.message });
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ Error processing networking messages:', error);
   }
 }
 
@@ -347,6 +493,49 @@ function getActionType(message) {
   }
 }
 
+async function sendNetworkingNotification(outreach, connection, sendResult) {
+  if (!RESEND_API_KEY || !NOTIFICATION_EMAIL) {
+    console.log('⚠️  Notifications disabled (missing RESEND_API_KEY or NOTIFICATION_EMAIL)');
+    return;
+  }
+
+  try {
+    const subject = sendResult.success
+      ? `✅ Networking Message Sent: ${connection.first_name} ${connection.last_name || ''}`
+      : `❌ Networking Message Failed: ${connection.first_name} ${connection.last_name || ''}`;
+
+    const body = `
+Networking Message Details:
+• Contact: ${connection.first_name} ${connection.last_name || ''}
+• LinkedIn: ${connection.linkedin_url || 'N/A'}
+• Scheduled: ${outreach.scheduled_at}
+• Sent: ${new Date().toISOString()}
+• Result: ${sendResult.success ? 'SUCCESS' : 'FAILED'}
+${sendResult.error ? `• Error: ${sendResult.error}` : ''}
+${sendResult.message_id ? `• Message ID: ${sendResult.message_id}` : ''}
+
+Message Content:
+${outreach.personalized_message}
+    `.trim();
+
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'notifications@atherial.ai',
+        to: [NOTIFICATION_EMAIL],
+        subject: subject,
+        text: body
+      })
+    });
+  } catch (error) {
+    console.warn('⚠️ Failed to send networking notification:', error.message);
+  }
+}
+
 async function notifyViaEmail(message, sendResult) {
   if (!RESEND_API_KEY) return; // Optional
 
@@ -378,7 +567,7 @@ ${message.body}
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'notifications@yourdomain.com', // You'll need to verify this domain in Resend
+        from: 'notifications@atherial.ai',
         to: [NOTIFICATION_EMAIL],
         subject: subject,
         text: body

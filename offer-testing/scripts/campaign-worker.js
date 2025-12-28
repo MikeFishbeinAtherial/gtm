@@ -268,7 +268,7 @@ async function runWorker() {
         continue;
       }
 
-      // Get next pending message
+      // Get next pending message that's scheduled and due
       const { data: outreachRecords, error: fetchError } = await supabase
         .from('networking_outreach')
         .select(`
@@ -277,6 +277,9 @@ async function runWorker() {
         `)
         .eq('batch_id', campaign.id)
         .eq('status', 'pending')
+        .not('scheduled_at', 'is', null)
+        .lte('scheduled_at', new Date().toISOString())
+        .order('scheduled_at', { ascending: true })
         .limit(1);
 
       if (fetchError) {
