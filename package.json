@@ -1,0 +1,10 @@
+{
+  "name": "gtm-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd offer-testing && npm ci && npm run build",
+    "start": "cd offer-testing && npm start"
+  }
+}
+
