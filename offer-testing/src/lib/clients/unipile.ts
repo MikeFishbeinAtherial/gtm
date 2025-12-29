@@ -12,10 +12,17 @@
 
 export interface UnipileAccount {
   id: string
-  provider: 'linkedin' | 'email'
+  provider?: 'linkedin' | 'email'
+  type?: 'LINKEDIN' | 'EMAIL'
   email?: string
   name?: string
-  status: 'active' | 'disconnected' | 'error'
+  status?: 'active' | 'disconnected' | 'error'
+}
+
+export interface UnipileAccountListResponse {
+  object: 'AccountList'
+  items: UnipileAccount[]
+  cursor: string | null
 }
 
 export interface UnipileProfile {
@@ -130,7 +137,9 @@ export class UnipileClient {
    * @returns Connected accounts
    */
   async listAccounts(): Promise<UnipileAccount[]> {
-    return this.request<UnipileAccount[]>('/accounts')
+    const response = await this.request<UnipileAccountListResponse | UnipileAccount[]>('/accounts')
+    // Handle both response formats: {items: [...]} or [...]
+    return Array.isArray(response) ? response : response.items
   }
 
   /**

@@ -23,29 +23,26 @@ async function testUnipile() {
     console.log('1️⃣ Fetching connected accounts...')
     const accounts = await unipile.listAccounts()
 
-    // Handle different response formats
-    let accountList = Array.isArray(accounts) ? accounts : accounts.items || accounts.data || []
-
-    if (accountList.length === 0) {
+    if (accounts.length === 0) {
       console.log('❌ No accounts connected!')
       console.log('Go to your Unipile dashboard to connect your LinkedIn account.')
       return
     }
 
-    console.log(`✅ Found ${accountList.length} connected account(s):\n`)
+    console.log(`✅ Found ${accounts.length} connected account(s):\n`)
 
-    accountList.forEach((account, index) => {
+    accounts.forEach((account, index) => {
       console.log(`Account ${index + 1}:`)
       console.log(`  - ID: ${account.id}`)
       console.log(`  - Provider: ${account.provider || account.type}`)
       console.log(`  - Email: ${account.email || 'N/A'}`)
       console.log(`  - Name: ${account.name || 'N/A'}`)
-      console.log(`  - Status: ${account.status}`)
+      console.log(`  - Status: ${account.status || 'N/A'}`)
       console.log('')
     })
 
     // Test 2: Get conversations count for LinkedIn account
-    const linkedinAccount = accountList.find(a => a.provider === 'LINKEDIN' || a.type === 'LINKEDIN')
+    const linkedinAccount = accounts.find(a => a.provider === 'linkedin' || a.type === 'LINKEDIN')
     if (linkedinAccount) {
       console.log('2️⃣ Fetching conversations...')
       try {

@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+// Initialize Supabase client (only when actually handling a request)
+const getSupabaseClient = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase environment variables')
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceKey)
+}
 
 // Webhook authentication secret
 const WEBHOOK_SECRET = process.env.UNIPILE_WEBHOOK_SECRET
@@ -110,6 +117,8 @@ export async function POST(request: NextRequest) {
 async function handleMessageDelivered(payload: UnipileWebhookPayload) {
   console.log(`✅ Message delivered: ${payload.message_id}`)
 
+  const supabase = getSupabaseClient()
+
   // Update networking outreach record if this was an outgoing message
   const { error } = await supabase
     .from('networking_outreach')
@@ -148,6 +157,8 @@ async function handleMessageDelivered(payload: UnipileWebhookPayload) {
 
 async function handleMessageReceived(payload: UnipileWebhookPayload) {
   console.log(`💬 Message received: ${payload.message_id} from ${payload.sender?.attendee_name}`)
+
+  const supabase = getSupabaseClient()
 
   // This is an incoming message (reply or new conversation)
   // Store in a replies/conversations table or update existing outreach record
@@ -197,6 +208,8 @@ async function handleMessageReceived(payload: UnipileWebhookPayload) {
 async function handleMessageFailed(payload: UnipileWebhookPayload) {
   console.log(`❌ Message failed: ${payload.message_id}`)
 
+  const supabase = getSupabaseClient()
+
   // Update outreach record to failed status
   const { error } = await supabase
     .from('networking_outreach')
@@ -216,6 +229,8 @@ async function handleMessageFailed(payload: UnipileWebhookPayload) {
 async function handleMessageRead(payload: UnipileWebhookPayload) {
   console.log(`👀 Message read: ${payload.message_id}`)
 
+  const supabase = getSupabaseClient()
+
   // Update outreach record to mark as read
   const { error } = await supabase
     .from('networking_outreach')
@@ -233,6 +248,8 @@ async function handleMessageRead(payload: UnipileWebhookPayload) {
 
 async function handleMessageReaction(payload: UnipileWebhookPayload) {
   console.log(`😄 Message reaction: ${payload.reaction} on ${payload.message_id}`)
+
+  const supabase = getSupabaseClient()
 
   // Store reaction in replies or update outreach record
   const reactionData = {
