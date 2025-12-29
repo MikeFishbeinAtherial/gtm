@@ -12,13 +12,11 @@
  *   node scripts/start-service.js --cron   # For cron jobs
  */
 
-import { execSync } from 'child_process';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+const { execSync } = require('child_process');
+const path = require('path');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const projectRoot = join(__dirname, '..');
+const __dirname = path.dirname(__filename);
+const projectRoot = path.join(__dirname, '..');
 
 // Check if this is a cron run
 // Railway cron jobs may set different environment variables
