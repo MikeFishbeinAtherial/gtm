@@ -46,7 +46,7 @@ export async function scheduleNewMessages(
   const config: SchedulingConfig = campaign?.scheduling_config || {
     daily_limit: 40,
     min_interval_minutes: 5,
-    max_interval_minutes: 10,
+    max_interval_minutes: 20, // Increased for varied intervals - ensures some crons won't send
     business_hours_start: 9,
     business_hours_end: 17,
     send_days: [1, 2, 3, 4, 5]

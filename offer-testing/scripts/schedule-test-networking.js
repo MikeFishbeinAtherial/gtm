@@ -75,19 +75,22 @@ async function scheduleTestNetworking() {
     console.log(`📅 Starting from: ${startTime.toLocaleString()}`);
     console.log('');
 
-    // Schedule each message with 5-minute intervals
+    // Schedule each message with varied intervals (5-20 minutes) to ensure some crons won't send
+    let currentTime = new Date(startTime);
     for (let i = 0; i < outreachRecords.length; i++) {
-      const scheduledTime = new Date(startTime.getTime() + (i * 5 * 60 * 1000)); // 5 minutes apart
+      // Random interval between 5-20 minutes
+      const intervalMinutes = 5 + Math.random() * 15; // 5-20 minutes
+      currentTime = new Date(currentTime.getTime() + (intervalMinutes * 60 * 1000));
 
       await supabase
         .from('networking_outreach')
         .update({
-          scheduled_at: scheduledTime.toISOString(),
+          scheduled_at: currentTime.toISOString(),
           status: 'pending' // Ensure status is still pending
         })
         .eq('id', outreachRecords[i].id);
 
-      console.log(`✅ Message ${i + 1}: ${scheduledTime.toLocaleString()}`);
+      console.log(`✅ Message ${i + 1}: ${currentTime.toLocaleString()} (${intervalMinutes.toFixed(1)} min interval)`);
       console.log(`   To: ${outreachRecords[i].linkedin_connections.first_name} ${outreachRecords[i].linkedin_connections.last_name}`);
       console.log(`   "${outreachRecords[i].personalized_message.substring(0, 60)}..."`);
       console.log('');

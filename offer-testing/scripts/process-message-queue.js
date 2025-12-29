@@ -799,8 +799,8 @@ async function main() {
   console.log(`   RESEND_API_KEY: ${RESEND_API_KEY ? 'SET' : 'MISSING'}`);
   console.log(`   NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL ? NOTIFICATION_EMAIL : 'MISSING'}`);
 
-  // Always send test email to verify cron is running
-  await sendCronTestEmail();
+  // Cron test email disabled - only send notifications when messages are actually sent
+  // await sendCronTestEmail();
 
   try {
     await processDueMessages();
