@@ -162,12 +162,13 @@ async function processDueMessages() {
     }
 
     // Then check regular messages table (only if no networking message was sent)
+    // Note: messages -> campaign_contacts -> campaigns (not direct relationship)
     const { data: dueMessages, error } = await supabase
       .from('messages')
       .select(`
         *,
         contact:contacts(*),
-        campaign:campaigns(*),
+        campaign_contact:campaign_contacts(*, campaign:campaigns(*)),
         account:accounts(*)
       `)
       .eq('status', 'pending')
@@ -214,6 +215,39 @@ async function processNetworkingMessages() {
     if (!accountsResponse.ok) {
       const errorText = await accountsResponse.text();
       console.error(`❌ Unipile accounts API error: ${accountsResponse.status} - ${errorText}`);
+      
+      // Send notification about Unipile connection issue
+      if (RESEND_API_KEY && NOTIFICATION_EMAIL) {
+        try {
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${RESEND_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              from: 'notifications@atherial.ai',
+              to: [NOTIFICATION_EMAIL],
+              subject: '⚠️ Unipile Connection Issue - LinkedIn Session Expired',
+              text: `Your LinkedIn session in Unipile needs to be reconnected.
+
+Error: ${accountsResponse.status} - ${errorText}
+
+Action Required:
+1. Go to your Unipile dashboard
+2. Find your LinkedIn account
+3. Click "Reconnect" to re-authenticate
+
+The cron job will automatically resume processing once reconnected.
+
+Time: ${new Date().toISOString()}`
+            })
+          });
+        } catch (emailError) {
+          console.warn('⚠️ Failed to send Unipile error notification:', emailError.message);
+        }
+      }
+      
       return false;
     }
 
@@ -472,7 +506,9 @@ async function processMessage(message) {
 
 async function sendLinkedInMessage(message) {
   const contact = message.contact;
-  const campaignType = message.campaign?.campaign_type || 'cold_outreach';
+  // Access campaign through campaign_contact relationship
+  const campaign = message.campaign_contact?.campaign;
+  const campaignType = campaign?.campaign_type || 'cold_outreach';
 
   try {
     // Check current connection status via Unipile
@@ -495,7 +531,7 @@ async function sendLinkedInMessage(message) {
         // Check if they became 1st degree during this campaign
         // (i.e., we sent them a connection request that they accepted)
         const becameFirstDegree = await checkIfBecameFirstDegreeDuringCampaign(
-          message.campaign_id,
+          campaign?.id,
           contact.id
         );
 
@@ -653,11 +689,12 @@ async function notifyViaEmail(message, sendResult) {
       ? `✅ Message Sent: ${message.contact?.first_name} ${message.contact?.last_name}`
       : `❌ Message Failed: ${message.contact?.first_name} ${message.contact?.last_name}`;
 
+    const campaign = message.campaign_contact?.campaign;
     const body = `
 Message Details:
 • Contact: ${message.contact ? `${message.contact.first_name} ${message.contact.last_name}` : 'Unknown'}
 • Company: ${message.contact?.company_name || 'Unknown'}
-• Campaign: ${message.campaign?.name || 'Unknown'}
+• Campaign: ${campaign?.name || 'Unknown'}
 • Channel: ${message.channel}
 • Action Type: ${getActionType(message)}
 • Scheduled: ${message.scheduled_at}
