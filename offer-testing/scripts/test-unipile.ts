@@ -10,7 +10,7 @@ import path from 'path'
 // Load environment variables from .env.local
 dotenv.config({ path: path.join(process.cwd(), '.env.local') })
 
-import { UnipileClient } from '../src/lib/clients/unipile.ts'
+import { UnipileClient } from '../src/lib/clients/unipile.js'
 
 async function testUnipile() {
   console.log('🔌 Testing Unipile Connection...\n')
