@@ -15,7 +15,6 @@
 const { execSync } = require('child_process');
 const path = require('path');
 
-const __dirname = path.dirname(__filename);
 const projectRoot = path.join(__dirname, '..');
 
 // Check if this is a cron run
