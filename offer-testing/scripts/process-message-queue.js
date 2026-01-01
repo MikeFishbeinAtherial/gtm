@@ -216,20 +216,16 @@ async function processNetworkingMessages() {
       const errorText = await accountsResponse.text();
       console.error(`❌ Unipile accounts API error: ${accountsResponse.status} - ${errorText}`);
       
-      // Send notification about Unipile connection issue
+      // Add Unipile error to digest queue
       if (RESEND_API_KEY && NOTIFICATION_EMAIL) {
         try {
-          await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${RESEND_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              from: 'notifications@atherial.ai',
-              to: [NOTIFICATION_EMAIL],
-              subject: '⚠️ Unipile Connection Issue - LinkedIn Session Expired',
-              text: `Your LinkedIn session in Unipile needs to be reconnected.
+          await supabase
+            .from('notification_digest_queue')
+            .insert({
+              notification_type: 'unipile_error',
+              contact_name: null,
+              contact_linkedin_url: null,
+              message_content: `Unipile Connection Issue - LinkedIn Session Expired
 
 Error: ${accountsResponse.status} - ${errorText}
 
@@ -238,13 +234,16 @@ Action Required:
 2. Find your LinkedIn account
 3. Click "Reconnect" to re-authenticate
 
-The cron job will automatically resume processing once reconnected.
-
-Time: ${new Date().toISOString()}`
-            })
-          });
+The cron job will automatically resume processing once reconnected.`,
+              scheduled_at: null,
+              sent_at: null,
+              result: 'ERROR',
+              error_message: `${accountsResponse.status} - ${errorText}`,
+              message_id: null
+            });
+          console.log('📝 Added Unipile error notification to digest queue');
         } catch (emailError) {
-          console.warn('⚠️ Failed to send Unipile error notification:', emailError.message);
+          console.warn('⚠️ Failed to add Unipile error notification to queue:', emailError.message);
         }
       }
       
@@ -644,83 +643,51 @@ async function sendNetworkingNotification(outreach, connection, sendResult) {
     return;
   }
 
+  // Add to digest queue instead of sending immediately
   try {
-    const subject = sendResult.success
-      ? `✅ Networking Message Sent: ${connection.first_name} ${connection.last_name || ''}`
-      : `❌ Networking Message Failed: ${connection.first_name} ${connection.last_name || ''}`;
-
-    const body = `
-Networking Message Details:
-• Contact: ${connection.first_name} ${connection.last_name || ''}
-• LinkedIn: ${connection.linkedin_url || 'N/A'}
-• Scheduled: ${outreach.scheduled_at}
-• Sent: ${new Date().toISOString()}
-• Result: ${sendResult.success ? 'SUCCESS' : 'FAILED'}
-${sendResult.error ? `• Error: ${sendResult.error}` : ''}
-${sendResult.message_id ? `• Message ID: ${sendResult.message_id}` : ''}
-
-Message Content:
-${outreach.personalized_message}
-    `.trim();
-
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'notifications@atherial.ai',
-        to: [NOTIFICATION_EMAIL],
-        subject: subject,
-        text: body
-      })
-    });
+    await supabase
+      .from('notification_digest_queue')
+      .insert({
+        notification_type: sendResult.success ? 'networking_success' : 'networking_failed',
+        contact_name: `${connection.first_name} ${connection.last_name || ''}`.trim(),
+        contact_linkedin_url: connection.linkedin_url || null,
+        message_content: outreach.personalized_message,
+        scheduled_at: outreach.scheduled_at,
+        sent_at: sendResult.success ? new Date().toISOString() : null,
+        result: sendResult.success ? 'SUCCESS' : 'FAILED',
+        error_message: sendResult.error || null,
+        message_id: sendResult.message_id || null
+      });
+    
+    console.log(`📝 Added ${sendResult.success ? 'success' : 'failure'} notification to digest queue`);
   } catch (error) {
-    console.warn('⚠️ Failed to send networking notification:', error.message);
+    console.warn('⚠️ Failed to add notification to digest queue:', error.message);
   }
 }
 
 async function notifyViaEmail(message, sendResult) {
-  if (!RESEND_API_KEY) return; // Optional
+  if (!RESEND_API_KEY || !NOTIFICATION_EMAIL) return; // Optional
 
+  // Add to digest queue instead of sending immediately
   try {
-    const subject = sendResult.success
-      ? `✅ Message Sent: ${message.contact?.first_name} ${message.contact?.last_name}`
-      : `❌ Message Failed: ${message.contact?.first_name} ${message.contact?.last_name}`;
-
     const campaign = message.campaign_contact?.campaign;
-    const body = `
-Message Details:
-• Contact: ${message.contact ? `${message.contact.first_name} ${message.contact.last_name}` : 'Unknown'}
-• Company: ${message.contact?.company_name || 'Unknown'}
-• Campaign: ${campaign?.name || 'Unknown'}
-• Channel: ${message.channel}
-• Action Type: ${getActionType(message)}
-• Scheduled: ${message.scheduled_at}
-• Sent: ${new Date().toISOString()}
-• Result: ${sendResult.success ? 'SUCCESS' : 'FAILED'}
-${sendResult.error ? `• Error: ${sendResult.error}` : ''}
-
-Message Content:
-${message.body}
-    `.trim();
-
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'notifications@atherial.ai',
-        to: [NOTIFICATION_EMAIL],
-        subject: subject,
-        text: body
-      })
-    });
+    await supabase
+      .from('notification_digest_queue')
+      .insert({
+        notification_type: sendResult.success ? 'message_success' : 'message_failed',
+        contact_name: message.contact ? `${message.contact.first_name} ${message.contact.last_name}`.trim() : 'Unknown',
+        contact_linkedin_url: message.contact?.linkedin_url || null,
+        message_content: message.body,
+        scheduled_at: message.scheduled_at,
+        sent_at: sendResult.success ? new Date().toISOString() : null,
+        result: sendResult.success ? 'SUCCESS' : 'FAILED',
+        error_message: sendResult.error || null,
+        message_id: sendResult.message_id || null
+      });
+    
+    console.log(`📝 Added ${sendResult.success ? 'success' : 'failure'} notification to digest queue`);
   } catch (error) {
-    console.warn('⚠️ Failed to send email notification:', error.message);
+    console.warn('⚠️ Failed to add notification to digest queue:', error.message);
   }
 }
 
@@ -787,6 +754,181 @@ This email confirms the cron job ran successfully.
   }
 }
 
+// Check if it's time to send digest email (every 6 hours)
+async function shouldSendDigest() {
+  try {
+    const { data: metadata } = await supabase
+      .from('notification_digest_metadata')
+      .select('last_digest_sent_at, digest_interval_hours')
+      .eq('id', '00000000-0000-0000-0000-000000000001')
+      .single();
+
+    if (!metadata) {
+      // Initialize metadata if it doesn't exist
+      await supabase
+        .from('notification_digest_metadata')
+        .insert({
+          id: '00000000-0000-0000-0000-000000000001',
+          last_digest_sent_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
+          digest_interval_hours: 6
+        });
+      return true; // Send first digest immediately
+    }
+
+    const lastDigestTime = new Date(metadata.last_digest_sent_at);
+    const intervalMs = (metadata.digest_interval_hours || 6) * 60 * 60 * 1000;
+    const timeSinceLastDigest = Date.now() - lastDigestTime.getTime();
+
+    return timeSinceLastDigest >= intervalMs;
+  } catch (error) {
+    console.warn('⚠️ Error checking digest schedule:', error.message);
+    return false; // Don't send if we can't check
+  }
+}
+
+// Send digest email with all queued notifications
+async function sendDigestEmail() {
+  if (!RESEND_API_KEY || !NOTIFICATION_EMAIL) {
+    console.log('⚠️  Digest email disabled (missing RESEND_API_KEY or NOTIFICATION_EMAIL)');
+    return;
+  }
+
+  try {
+    // Get all queued notifications
+    const { data: notifications, error } = await supabase
+      .from('notification_digest_queue')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('❌ Error fetching digest queue:', error);
+      return;
+    }
+
+    if (!notifications || notifications.length === 0) {
+      console.log('📭 No notifications in digest queue');
+      return;
+    }
+
+    // Group notifications by type
+    const networkingSuccess = notifications.filter(n => n.notification_type === 'networking_success');
+    const networkingFailed = notifications.filter(n => n.notification_type === 'networking_failed');
+    const messageSuccess = notifications.filter(n => n.notification_type === 'message_success');
+    const messageFailed = notifications.filter(n => n.notification_type === 'message_failed');
+    const unipileErrors = notifications.filter(n => n.notification_type === 'unipile_error');
+
+    const totalCount = notifications.length;
+    const successCount = networkingSuccess.length + messageSuccess.length;
+    const failedCount = networkingFailed.length + messageFailed.length;
+    const errorCount = unipileErrors.length;
+
+    // Build digest email body
+    let body = `📊 Message Digest Report\n`;
+    body += `⏰ Period: Last 6 hours\n`;
+    body += `📅 Generated: ${new Date().toISOString()}\n\n`;
+    body += `📈 Summary:\n`;
+    body += `• Total notifications: ${totalCount}\n`;
+    body += `• ✅ Successful sends: ${successCount}\n`;
+    body += `• ❌ Failed sends: ${failedCount}\n`;
+    body += `• ⚠️  Errors: ${errorCount}\n\n`;
+
+    if (networkingSuccess.length > 0) {
+      body += `\n✅ Networking Messages Sent (${networkingSuccess.length}):\n`;
+      body += '─'.repeat(60) + '\n';
+      networkingSuccess.forEach((n, i) => {
+        body += `${i + 1}. ${n.contact_name || 'Unknown'}\n`;
+        body += `   Sent: ${n.sent_at ? new Date(n.sent_at).toLocaleString() : 'N/A'}\n`;
+        if (n.contact_linkedin_url) {
+          body += `   LinkedIn: ${n.contact_linkedin_url}\n`;
+        }
+        body += '\n';
+      });
+    }
+
+    if (networkingFailed.length > 0) {
+      body += `\n❌ Networking Messages Failed (${networkingFailed.length}):\n`;
+      body += '─'.repeat(60) + '\n';
+      networkingFailed.forEach((n, i) => {
+        body += `${i + 1}. ${n.contact_name || 'Unknown'}\n`;
+        body += `   Error: ${n.error_message || 'Unknown error'}\n`;
+        if (n.contact_linkedin_url) {
+          body += `   LinkedIn: ${n.contact_linkedin_url}\n`;
+        }
+        body += '\n';
+      });
+    }
+
+    if (messageSuccess.length > 0) {
+      body += `\n✅ Regular Messages Sent (${messageSuccess.length}):\n`;
+      body += '─'.repeat(60) + '\n';
+      messageSuccess.forEach((n, i) => {
+        body += `${i + 1}. ${n.contact_name || 'Unknown'}\n`;
+        body += `   Sent: ${n.sent_at ? new Date(n.sent_at).toLocaleString() : 'N/A'}\n\n`;
+      });
+    }
+
+    if (messageFailed.length > 0) {
+      body += `\n❌ Regular Messages Failed (${messageFailed.length}):\n`;
+      body += '─'.repeat(60) + '\n';
+      messageFailed.forEach((n, i) => {
+        body += `${i + 1}. ${n.contact_name || 'Unknown'}\n`;
+        body += `   Error: ${n.error_message || 'Unknown error'}\n\n`;
+      });
+    }
+
+    if (unipileErrors.length > 0) {
+      body += `\n⚠️  Unipile Connection Errors (${unipileErrors.length}):\n`;
+      body += '─'.repeat(60) + '\n';
+      unipileErrors.forEach((n, i) => {
+        body += `${i + 1}. ${n.error_message || 'Unknown error'}\n`;
+        body += `   Time: ${new Date(n.created_at).toLocaleString()}\n\n`;
+      });
+    }
+
+    body += '\n─'.repeat(60) + '\n';
+    body += 'This is a digest email sent every 6 hours.\n';
+    body += 'Individual notifications are batched to reduce email volume.\n';
+
+    // Send digest email
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'notifications@atherial.ai',
+        to: [NOTIFICATION_EMAIL],
+        subject: `📊 Message Digest: ${successCount} sent, ${failedCount} failed (Last 6 hours)`,
+        text: body
+      })
+    });
+
+    if (response.ok) {
+      console.log(`✅ Digest email sent with ${totalCount} notifications`);
+      
+      // Clear the queue
+      await supabase
+        .from('notification_digest_queue')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+      // Update last digest sent time
+      await supabase
+        .from('notification_digest_metadata')
+        .update({
+          last_digest_sent_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', '00000000-0000-0000-0000-000000000001');
+    } else {
+      console.error('❌ Failed to send digest email:', response.status, response.statusText);
+    }
+  } catch (error) {
+    console.error('❌ Error sending digest email:', error.message);
+  }
+}
+
 // Main execution
 async function main() {
   console.log('🚀 Message Queue Processor Starting...');
@@ -799,9 +941,9 @@ async function main() {
   console.log(`   RESEND_API_KEY: ${RESEND_API_KEY ? 'SET' : 'MISSING'}`);
   console.log(`   NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL ? NOTIFICATION_EMAIL : 'MISSING'}`);
 
-  // Add random delay (1-90 seconds) to avoid predictable send patterns
+  // Add random delay (10-120 seconds) to avoid predictable send patterns
   // This prevents LinkedIn from detecting automation based on exact timing
-  const randomDelayMs = Math.floor(Math.random() * 90000) + 1000; // 1-90 seconds
+  const randomDelayMs = Math.floor(Math.random() * 110000) + 10000; // 10-120 seconds
   const randomDelaySeconds = Math.floor(randomDelayMs / 1000);
   console.log(`⏳ Adding random delay: ${randomDelaySeconds}s (to avoid detection patterns)`);
   await sleep(randomDelayMs);
@@ -813,6 +955,23 @@ async function main() {
   try {
     await processDueMessages();
     console.log('✅ Processing complete');
+    
+    // Check if it's time to send digest email (every 6 hours)
+    if (await shouldSendDigest()) {
+      console.log('📧 Time to send digest email...');
+      await sendDigestEmail();
+    } else {
+      const { data: metadata } = await supabase
+        .from('notification_digest_metadata')
+        .select('last_digest_sent_at')
+        .eq('id', '00000000-0000-0000-0000-000000000001')
+        .single();
+      
+      if (metadata) {
+        const nextDigestTime = new Date(new Date(metadata.last_digest_sent_at).getTime() + 6 * 60 * 60 * 1000);
+        console.log(`📭 Digest email will be sent at: ${nextDigestTime.toISOString()}`);
+      }
+    }
   } catch (error) {
     console.error('❌ Fatal error:', error);
     console.error('Error stack:', error.stack);

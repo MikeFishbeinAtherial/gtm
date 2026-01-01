@@ -30,7 +30,7 @@ async function testRandomization() {
     simulatedCronTime.setMilliseconds(0);
     
     // Add random delay (same as production code)
-    const randomDelayMs = Math.floor(Math.random() * 90000) + 1000; // 1-90 seconds
+    const randomDelayMs = Math.floor(Math.random() * 110000) + 10000; // 10-120 seconds
     const randomDelaySeconds = Math.floor(randomDelayMs / 1000);
     
     // Calculate when message would actually be sent
@@ -75,7 +75,7 @@ async function testRandomization() {
   
   console.log('\n✅ Test Complete!');
   console.log('\nWhat to look for:');
-  console.log('• Each run has a different delay (1-90 seconds)');
+  console.log('• Each run has a different delay (10-120 seconds)');
   console.log('• Send times vary (not always :00 or :05)');
   console.log('• Pattern looks natural, not robotic\n');
 }
