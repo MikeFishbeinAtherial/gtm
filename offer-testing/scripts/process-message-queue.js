@@ -799,6 +799,14 @@ async function main() {
   console.log(`   RESEND_API_KEY: ${RESEND_API_KEY ? 'SET' : 'MISSING'}`);
   console.log(`   NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL ? NOTIFICATION_EMAIL : 'MISSING'}`);
 
+  // Add random delay (1-90 seconds) to avoid predictable send patterns
+  // This prevents LinkedIn from detecting automation based on exact timing
+  const randomDelayMs = Math.floor(Math.random() * 90000) + 1000; // 1-90 seconds
+  const randomDelaySeconds = Math.floor(randomDelayMs / 1000);
+  console.log(`⏳ Adding random delay: ${randomDelaySeconds}s (to avoid detection patterns)`);
+  await sleep(randomDelayMs);
+  console.log(`✅ Delay complete, starting message processing...`);
+
   // Cron test email disabled - only send notifications when messages are actually sent
   // await sendCronTestEmail();
 
