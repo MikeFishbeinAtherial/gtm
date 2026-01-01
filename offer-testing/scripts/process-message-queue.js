@@ -823,9 +823,12 @@ async function sendDigestEmail() {
     const errorCount = unipileErrors.length;
 
     // Build digest email body
+    const now = new Date();
+    const generatedTimeET = now.toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'short', timeStyle: 'short' });
+    
     let body = `📊 Message Digest Report\n`;
     body += `⏰ Period: Last 6 hours\n`;
-    body += `📅 Generated: ${new Date().toISOString()}\n\n`;
+    body += `📅 Generated: ${generatedTimeET} ET\n\n`;
     body += `📈 Summary:\n`;
     body += `• Total notifications: ${totalCount}\n`;
     body += `• ✅ Successful sends: ${successCount}\n`;
@@ -837,7 +840,13 @@ async function sendDigestEmail() {
       body += '─'.repeat(60) + '\n';
       networkingSuccess.forEach((n, i) => {
         body += `${i + 1}. ${n.contact_name || 'Unknown'}\n`;
-        body += `   Sent: ${n.sent_at ? new Date(n.sent_at).toLocaleString() : 'N/A'}\n`;
+        if (n.sent_at) {
+          // Format timestamp in local timezone (not UTC)
+          const sentDate = new Date(n.sent_at);
+          body += `   Sent: ${sentDate.toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'short', timeStyle: 'short' })} ET\n`;
+        } else {
+          body += `   Sent: N/A\n`;
+        }
         if (n.contact_linkedin_url) {
           body += `   LinkedIn: ${n.contact_linkedin_url}\n`;
         }
@@ -863,7 +872,13 @@ async function sendDigestEmail() {
       body += '─'.repeat(60) + '\n';
       messageSuccess.forEach((n, i) => {
         body += `${i + 1}. ${n.contact_name || 'Unknown'}\n`;
-        body += `   Sent: ${n.sent_at ? new Date(n.sent_at).toLocaleString() : 'N/A'}\n\n`;
+        if (n.sent_at) {
+          const sentDate = new Date(n.sent_at);
+          body += `   Sent: ${sentDate.toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'short', timeStyle: 'short' })} ET\n`;
+        } else {
+          body += `   Sent: N/A\n`;
+        }
+        body += '\n';
       });
     }
 
@@ -881,7 +896,8 @@ async function sendDigestEmail() {
       body += '─'.repeat(60) + '\n';
       unipileErrors.forEach((n, i) => {
         body += `${i + 1}. ${n.error_message || 'Unknown error'}\n`;
-        body += `   Time: ${new Date(n.created_at).toLocaleString()}\n\n`;
+        const errorDate = new Date(n.created_at);
+        body += `   Time: ${errorDate.toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'short', timeStyle: 'short' })} ET\n\n`;
       });
     }
 
