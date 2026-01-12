@@ -105,8 +105,7 @@ function isSalesJobTitle(title) {
     'sales rep', 'sales representative', 'sales manager', 'sales director',
     'vp sales', 'head of sales', 'cro', 'revenue', 'inside sales',
     'outside sales', 'field sales', 'territory manager', 'sales engineer',
-    'sales enablement', 'sales operations', 'revops', 'business development',
-    'gtm', 'go-to-market', 'go to market'  // GTM roles are often sales-focused
+    'sales enablement', 'sales operations', 'revops', 'business development'
   ]
   return salesKeywords.some(keyword => titleLower.includes(keyword))
 }
@@ -244,39 +243,10 @@ async function main() {
         })
         
         const allJobs = jobs.jobs || []
-        // Filter to ONLY sales jobs - be strict!
-        // Sumble query should filter by job_function, but we double-check here
         const salesJobs = allJobs.filter(job => {
           const title = job.job_title || ''
           const desc = job.description || ''
-          
-          // Primary check: job function must be Sales or Business Development
-          // This is the most reliable indicator
-          if (job.primary_job_function === 'Sales' || job.primary_job_function === 'Business Development') {
-            return true
-          }
-          
-          // Secondary check: title must clearly indicate sales
-          // Don't rely on description alone - too many false positives
-          if (isSalesJobTitle(title)) {
-            return true
-          }
-          
-          // Tertiary check: description mentions sales AND title is somewhat related
-          // Only if title has business/revenue/customer keywords
-          const titleLower = title.toLowerCase()
-          const hasBusinessKeywords = titleLower.includes('business') || 
-                                     titleLower.includes('revenue') || 
-                                     titleLower.includes('customer') ||
-                                     titleLower.includes('account') ||
-                                     titleLower.includes('client')
-          
-          if (hasBusinessKeywords && isSalesJobDescription(desc)) {
-            return true
-          }
-          
-          // If none of the above, it's NOT a sales job
-          return false
+          return isSalesJobTitle(title) || isSalesJobDescription(desc) || job.primary_job_function === 'Sales'
         })
 
         const isHiringSales = salesJobs.length > 0
