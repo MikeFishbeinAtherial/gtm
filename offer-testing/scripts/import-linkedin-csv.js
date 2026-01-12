@@ -111,9 +111,9 @@ function parseLinkedInUrl(url) {
 }
 
 // Helper: Generate linkedin_id from available data
-function generateLinkedInId(row) {
-  // Try to get from Profile URL
-  const profileSlug = parseLinkedInUrl(row['Profile URL'] || row['Profile'] || row['LinkedIn'])
+async function generateLinkedInId(row) {
+  // Try to get from Profile URL (your CSV has "URL" column)
+  const profileSlug = parseLinkedInUrl(row['URL'] || row['Profile URL'] || row['Profile'] || row['LinkedIn'])
   if (profileSlug) {
     // Use profile slug as ID (we'll update with real ID later if needed)
     return profileSlug
@@ -179,10 +179,10 @@ async function main() {
   for (const row of rows) {
     try {
       // Map CSV columns to our schema
-      // LinkedIn CSV column names can vary, so we try multiple variations
+      // Your CSV has: First Name, Last Name, URL, Email Address, Company, Position, Connected On
       const firstName = row['First Name'] || row['FirstName'] || row['first_name'] || ''
       const lastName = row['Last Name'] || row['LastName'] || row['last_name'] || ''
-      const fullName = row['Full Name'] || `${firstName} ${lastName}`.trim() || row['Name'] || ''
+      const fullName = `${firstName} ${lastName}`.trim() || row['Full Name'] || row['Name'] || ''
       const email = row['Email Address'] || row['Email'] || row['email'] || null
       const company = row['Company'] || row['company'] || null
       const position = row['Position'] || row['Position (Current)'] || row['Title'] || row['title'] || null
@@ -190,10 +190,10 @@ async function main() {
       const connectedOn = row['Connected On'] || row['Connected'] || row['connected_at'] || null
       const tags = row['Tags'] || row['tags'] || null
       const notes = row['Notes'] || row['notes'] || null
-      const profileUrl = row['Profile URL'] || row['Profile'] || row['LinkedIn'] || row['LinkedIn URL'] || null
+      const profileUrl = row['URL'] || row['Profile URL'] || row['Profile'] || row['LinkedIn'] || row['LinkedIn URL'] || null
 
       // Generate linkedin_id
-      const linkedinId = generateLinkedInId(row)
+      const linkedinId = await generateLinkedInId(row)
       if (!linkedinId) {
         console.warn(`   ⚠️  Skipping row - no way to generate ID: ${fullName || 'Unknown'}`)
         skipped++
@@ -201,10 +201,26 @@ async function main() {
       }
 
       // Parse connected_at date
+      // Your CSV format: "12 Jan 2026" or "07 Jan 2026"
       let connectedAt = null
       if (connectedOn) {
-        // LinkedIn exports dates in various formats, try to parse
-        const date = new Date(connectedOn)
+        // Try to parse LinkedIn date format: "DD MMM YYYY"
+        // First try direct Date parsing
+        let date = new Date(connectedOn)
+        if (isNaN(date.getTime())) {
+          // If that fails, try manual parsing for "DD MMM YYYY" format
+          const dateMatch = connectedOn.match(/(\d{1,2})\s+(\w{3})\s+(\d{4})/)
+          if (dateMatch) {
+            const [, day, month, year] = dateMatch
+            const monthMap = {
+              'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+              'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+              'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+            }
+            const monthNum = monthMap[month] || '01'
+            date = new Date(`${year}-${monthNum}-${day.padStart(2, '0')}`)
+          }
+        }
         if (!isNaN(date.getTime())) {
           connectedAt = date.toISOString()
         }

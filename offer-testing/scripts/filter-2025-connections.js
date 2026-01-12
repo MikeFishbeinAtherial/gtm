@@ -51,23 +51,33 @@ async function sumbleFindJobs(params) {
     throw new Error('SUMBLE_API_KEY not set')
   }
 
+  // Build request body according to Sumble API spec
+  const requestBody = {
+    limit: params.limit || 2,  // Default to 2 to save credits
+    offset: params.offset || 0,
+  }
+
+  // Add organization if specified (can be domain, id, or slug)
+  if (params.organization) {
+    requestBody.organization = params.organization
+  }
+
+  // Add filters (can be Filters object or Query object)
+  if (params.filters) {
+    requestBody.filters = params.filters
+  }
+
   const response = await fetch(`${SUMBLE_BASE_URL}/jobs/find`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${SUMBLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      limit: params.limit || 10,
-      offset: params.offset || 0,
-      ...(params.organization && { organization: params.organization }),
-      ...(params.filters && { filters: params.filters }),
-      ...(params.query && { filters: { query: params.query } }),
-    }),
+    body: JSON.stringify(requestBody),
   })
 
   if (response.status === 429) {
-    throw new Error('Sumble API rate limit exceeded')
+    throw new Error('Sumble API rate limit exceeded (10 req/sec)')
   }
 
   if (!response.ok) {
@@ -273,33 +283,42 @@ async function main() {
           continue
         }
 
-        try {
-          // Try organization-specific search first (more accurate)
-          if (conn.current_company) {
-            try {
-              orgJobs = await sumbleFindJobs({
-                organization: { name: conn.current_company },
-                filters: {
-                  since: '2024-12-01' // Last 2 months
-                },
-                limit: 20
-              })
-            } catch (err) {
-              // Organization search might fail if company name doesn't match exactly
-              // Fall back to query search
-            }
-          }
+        if (!conn.current_company) {
+          connectionsWithSumble.push({
+            ...conn,
+            sumble_data: null,
+            is_hiring_sales: false
+          })
+          continue
+        }
 
-          // Also try query-based search as fallback
-          if (orgJobs.jobs.length === 0) {
-            try {
-              jobs = await sumbleFindJobs({
-                query: `sales OR SDR OR BDR OR account executive OR sales manager ${conn.current_company}`,
-                limit: 10
-              })
-            } catch (err) {
-              // Query search failed too
+        try {
+          // Sumble API requires domain, id, or slug for organization search
+          // Since we only have company name, we'll use query search
+          // Limit to 2 jobs to save credits (3 credits per job = 6 credits max per company)
+          
+          // Use query search with company name + sales keywords
+          // This searches across all jobs and filters by the query terms
+          try {
+            jobs = await sumbleFindJobs({
+              filters: {
+                query: `${conn.current_company} (sales OR SDR OR BDR OR "account executive" OR "sales manager")`
+              },
+              limit: 2  // Limit to 2 jobs to save credits (6 credits max per company)
+            })
+            
+            // Filter results to only include jobs from this company
+            // Sumble query search might return jobs from other companies too
+            if (jobs.jobs && jobs.jobs.length > 0) {
+              jobs.jobs = jobs.jobs.filter(job => 
+                job.organization_name?.toLowerCase().includes(conn.current_company.toLowerCase()) ||
+                conn.current_company.toLowerCase().includes(job.organization_name?.toLowerCase() || '')
+              )
+              jobs.total = jobs.jobs.length
             }
+          } catch (err) {
+            // Query search failed
+            console.warn(`   ⚠️  Could not find jobs for ${conn.current_company}: ${err.message}`)
           }
         } catch (error) {
           console.error(`   ⚠️  Sumble API error for ${conn.current_company}: ${error.message}`)
@@ -311,7 +330,7 @@ async function main() {
           continue
         }
 
-        const allJobs = [...(jobs.jobs || []), ...(orgJobs.jobs || [])]
+        const allJobs = jobs.jobs || []
         // Use the sales job titles helper for better matching
         const salesJobs = allJobs.filter(job => {
           const title = job.job_title || ''
