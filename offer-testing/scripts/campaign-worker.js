@@ -144,8 +144,8 @@ async function sendMessage(outreach, connection, unipileAccountId) {
     }
 
     return { success: true, result: await response.json() };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -382,8 +382,9 @@ async function runWorker() {
         await new Promise(resolve => setTimeout(resolve, CHECK_INTERVAL_MS));
       }
 
-    } catch (error: any) {
-      console.error('❌ Error in worker loop:', error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ Error in worker loop:', errorMessage);
       await new Promise(resolve => setTimeout(resolve, CHECK_INTERVAL_MS));
     }
   }
