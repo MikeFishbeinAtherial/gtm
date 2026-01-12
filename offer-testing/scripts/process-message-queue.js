@@ -793,12 +793,30 @@ This email confirms the cron job ran successfully.
   }
 }
 
-// Check if it's time to send digest email (every 6 hours)
+// Check if it's time to send digest email (at 7am, noon, 4pm, 7pm ET)
 async function shouldSendDigest() {
   try {
+    // Get current time in ET
+    const now = new Date();
+    const etTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const etHour = etTime.getHours();
+    const etMinute = etTime.getMinutes();
+    
+    // Define digest times: 7am (7), noon (12), 4pm (16), 7pm (19) ET
+    const digestTimes = [7, 12, 16, 19];
+    
+    // Check if current hour matches a digest time (within 5 minutes of the hour)
+    const isDigestHour = digestTimes.includes(etHour);
+    const isWithinWindow = etMinute >= 0 && etMinute < 5; // Send between :00 and :05
+    
+    if (!isDigestHour || !isWithinWindow) {
+      return false;
+    }
+    
+    // Check if we already sent a digest for this hour today
     const { data: metadata } = await supabase
       .from('notification_digest_metadata')
-      .select('last_digest_sent_at, digest_interval_hours')
+      .select('last_digest_sent_at')
       .eq('id', '00000000-0000-0000-0000-000000000001')
       .single();
 
@@ -808,17 +826,26 @@ async function shouldSendDigest() {
         .from('notification_digest_metadata')
         .insert({
           id: '00000000-0000-0000-0000-000000000001',
-          last_digest_sent_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
-          digest_interval_hours: 6
+          last_digest_sent_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 24 hours ago
+          digest_interval_hours: 0 // Not used anymore, but keep for compatibility
         });
-      return true; // Send first digest immediately
+      return true; // Send first digest
     }
 
     const lastDigestTime = new Date(metadata.last_digest_sent_at);
-    const intervalMs = (metadata.digest_interval_hours || 6) * 60 * 60 * 1000;
-    const timeSinceLastDigest = Date.now() - lastDigestTime.getTime();
-
-    return timeSinceLastDigest >= intervalMs;
+    const lastDigestET = new Date(lastDigestTime.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    
+    // Check if we already sent today at this hour
+    const sameDay = lastDigestET.getDate() === etTime.getDate() && 
+                   lastDigestET.getMonth() === etTime.getMonth() &&
+                   lastDigestET.getFullYear() === etTime.getFullYear();
+    const sameHour = lastDigestET.getHours() === etHour;
+    
+    if (sameDay && sameHour) {
+      return false; // Already sent for this hour today
+    }
+    
+    return true; // Time to send!
   } catch (error) {
     console.warn('⚠️ Error checking digest schedule:', error.message);
     return false; // Don't send if we can't check
@@ -866,7 +893,7 @@ async function sendDigestEmail() {
     const generatedTimeET = now.toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'short', timeStyle: 'short' });
     
     let body = `📊 Message Digest Report\n`;
-    body += `⏰ Period: Last 6 hours\n`;
+    body += `⏰ Period: Since last digest\n`;
     body += `📅 Generated: ${generatedTimeET} ET\n\n`;
     body += `📈 Summary:\n`;
     body += `• Total notifications: ${totalCount}\n`;
@@ -941,7 +968,7 @@ async function sendDigestEmail() {
     }
 
     body += '\n─'.repeat(60) + '\n';
-    body += 'This is a digest email sent every 6 hours.\n';
+    body += 'This is a digest email sent at 7am, noon, 4pm, and 7pm ET.\n';
     body += 'Individual notifications are batched to reduce email volume.\n';
 
     // Send digest email
@@ -954,7 +981,7 @@ async function sendDigestEmail() {
       body: JSON.stringify({
         from: 'notifications@atherial.ai',
         to: [NOTIFICATION_EMAIL],
-        subject: `📊 Message Digest: ${successCount} sent, ${failedCount} failed (Last 6 hours)`,
+        subject: `📊 Message Digest: ${successCount} sent, ${failedCount} failed`,
         text: body
       })
     });
@@ -1011,21 +1038,33 @@ async function main() {
     await processDueMessages();
     console.log('✅ Processing complete');
     
-    // Check if it's time to send digest email (every 6 hours)
+    // Check if it's time to send digest email (7am, noon, 4pm, 7pm ET)
     if (await shouldSendDigest()) {
       console.log('📧 Time to send digest email...');
       await sendDigestEmail();
     } else {
-      const { data: metadata } = await supabase
-        .from('notification_digest_metadata')
-        .select('last_digest_sent_at')
-        .eq('id', '00000000-0000-0000-0000-000000000001')
-        .single();
+      // Show next digest time
+      const now = new Date();
+      const etTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+      const etHour = etTime.getHours();
       
-      if (metadata) {
-        const nextDigestTime = new Date(new Date(metadata.last_digest_sent_at).getTime() + 6 * 60 * 60 * 1000);
-        console.log(`📭 Digest email will be sent at: ${nextDigestTime.toISOString()}`);
+      // Find next digest time: 7am (7), noon (12), 4pm (16), 7pm (19) ET
+      const digestTimes = [7, 12, 16, 19];
+      let nextDigestHour = digestTimes.find(h => h > etHour);
+      if (!nextDigestHour) {
+        // If past 7pm, next is 7am tomorrow
+        nextDigestHour = 7;
+        etTime.setDate(etTime.getDate() + 1);
       }
+      etTime.setHours(nextDigestHour, 0, 0, 0);
+      
+      const nextDigestET = etTime.toLocaleString('en-US', { 
+        timeZone: 'America/New_York',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      console.log(`📭 Next digest email will be sent at: ${nextDigestET} ET`);
     }
   } catch (error) {
     console.error('❌ Fatal error:', error);
