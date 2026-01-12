@@ -327,6 +327,48 @@ async function runWorker() {
         continue;
       }
 
+      // CRITICAL: Check if we've already sent a message to this LinkedIn ID
+      // This prevents duplicates when the same person has multiple connection records
+      // or when multiple workers/crons are running simultaneously
+      console.log(`🔍 Checking for duplicate messages to LinkedIn ID: ${connection.linkedin_id}`);
+      const { data: existingSent, error: duplicateCheckError } = await supabase
+        .from('networking_outreach')
+        .select(`
+          id,
+          status,
+          sent_at,
+          linkedin_connections!inner(linkedin_id)
+        `)
+        .eq('status', 'sent')
+        .not('sent_at', 'is', null)
+        .eq('linkedin_connections.linkedin_id', connection.linkedin_id);
+
+      if (duplicateCheckError) {
+        console.error(`⚠️  Error checking for duplicates:`, duplicateCheckError);
+        // Continue anyway - better to log the error than block sending
+      } else if (existingSent && existingSent.length > 0) {
+        // Found existing sent message(s) to this LinkedIn ID
+        const existingRecord = existingSent[0];
+        console.log(`⚠️  DUPLICATE DETECTED: Already sent message to LinkedIn ID ${connection.linkedin_id}`);
+        console.log(`   Previous message ID: ${existingRecord.id}`);
+        console.log(`   Previous sent at: ${existingRecord.sent_at}`);
+        console.log(`   Skipping this message to prevent duplicate`);
+        
+        await supabase
+          .from('networking_outreach')
+          .update({
+            status: 'skipped',
+            skip_reason: `Duplicate: Already sent to LinkedIn ID ${connection.linkedin_id} (previous: ${existingRecord.id})`
+          })
+          .eq('id', outreach.id);
+        
+        // Wait a bit before checking next message
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continue; // Skip this message and check next one
+      } else {
+        console.log(`✅ No duplicate found - safe to send`);
+      }
+
       // Send message
       console.log(`📤 Sending to: ${connection.first_name} ${connection.last_name || ''}`);
       const sendResult = await sendMessage(outreach, connection, unipileAccountId);

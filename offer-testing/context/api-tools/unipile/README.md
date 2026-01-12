@@ -187,6 +187,111 @@ if (existing) {
 }
 ```
 
+## Getting LinkedIn Member IDs
+
+**CRITICAL:** Unipile requires LinkedIn **member IDs** (like `ACoAAABHHUIBcypgACxVCPvvXIL7RHwHohWS-Q0`), NOT usernames (like `john-doe`).
+
+### The Problem
+
+When importing connections from CSV, you often only have LinkedIn URLs:
+- ✅ Good: `https://linkedin.com/in/john-doe`
+- ❌ Bad: Storing `john-doe` as the LinkedIn ID
+
+Unipile's API requires the actual member ID, which looks like:
+- `ACoAAABHHUIBcypgACxVCPvvXIL7RHwHohWS-Q0`
+- `urn:li:member:1234567890`
+
+### Solution: Use the Cache System
+
+We cache all Unipile relations locally to avoid repeated API calls:
+
+#### Step 1: Populate Cache (One Time)
+
+```bash
+node scripts/cache-unipile-relations.js
+```
+
+This fetches all 7,671+ relations from Unipile and stores them in `unipile_relations_cache` table.
+
+#### Step 2: Fix Campaign LinkedIn IDs
+
+For any campaign with invalid LinkedIn IDs:
+
+```bash
+node scripts/fix-campaign-linkedin-ids.js "Campaign Name"
+```
+
+This script:
+1. Finds all connections in the campaign with invalid IDs
+2. Looks them up in the local cache (instant!)
+3. Updates `linkedin_connections.linkedin_id` with the real member ID
+4. Shows progress: `[X/531] (X%) - Xs elapsed, ~Xs remaining`
+
+#### Step 3: Verify IDs Are Valid
+
+```sql
+-- Check campaign status
+SELECT 
+    COUNT(*) as total,
+    COUNT(CASE WHEN lc.linkedin_id IS NOT NULL 
+               AND lc.linkedin_id NOT LIKE 'temp_%' 
+               AND (lc.linkedin_id ~ '^urn:' OR lc.linkedin_id !~ '^[a-z0-9-]+$') 
+          THEN 1 END) as valid_ids,
+    COUNT(CASE WHEN lc.linkedin_id IS NULL 
+               OR lc.linkedin_id LIKE 'temp_%' 
+               OR (lc.linkedin_id !~ '^urn:' AND lc.linkedin_id ~ '^[a-z0-9-]+$') 
+          THEN 1 END) as invalid_ids
+FROM networking_campaign_batches ncb
+JOIN networking_outreach no ON ncb.id = no.batch_id
+JOIN linkedin_connections lc ON no.connection_id = lc.id
+WHERE ncb.name = 'Your Campaign Name';
+```
+
+### When to Refresh Cache
+
+Refresh the cache weekly or when:
+- You've added many new LinkedIn connections
+- Cache is > 7 days old
+- Scripts can't find connections (cache might be stale)
+
+```bash
+node scripts/cache-unipile-relations.js
+```
+
+### How It Works
+
+1. **Cache Table:** `unipile_relations_cache`
+   - Stores member IDs, URLs, names, etc.
+   - Indexed for fast lookups
+
+2. **Automatic Usage:**
+   - Scripts check cache first
+   - If cache is fresh (< 7 days), use it
+   - If stale, fetch from API and update cache
+
+3. **Performance:**
+   - **Without cache:** 5-10 minutes to fetch 7,671 relations
+   - **With cache:** < 1 second to load from database
+
+### Invalid ID Patterns
+
+These are considered invalid and need fixing:
+- `temp_123456` (temporary IDs)
+- `john-doe` (username instead of member ID)
+- `null` or empty
+
+Valid member IDs look like:
+- `ACoAAABHHUIBcypgACxVCPvvXIL7RHwHohWS-Q0`
+- `urn:li:member:1234567890`
+
+### Related Scripts
+
+- `scripts/cache-unipile-relations.js` - Populate/refresh cache
+- `scripts/fix-campaign-linkedin-ids.js` - Fix IDs for a campaign
+- `scripts/create-unipile-cache-table.sql` - Table schema
+
+See `docs/unipile-cache-system.md` for full documentation.
+
 ## Examples
 
 See `examples.ts` for detailed code examples.
@@ -197,3 +302,5 @@ See `examples.ts` for detailed code examples.
 - **Sync Functions:** `src/lib/networking/linkedin-sync.ts`
 - **Safety Utils:** `src/lib/utils/linkedin-safety.ts`
 - **Sync Script:** `scripts/sync-linkedin.ts`
+- **Cache Script:** `scripts/cache-unipile-relations.js`
+- **Fix IDs Script:** `scripts/fix-campaign-linkedin-ids.js`
