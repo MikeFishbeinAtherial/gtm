@@ -331,43 +331,94 @@ The cron job will automatically resume processing once reconnected.`,
     }
 
     // CRITICAL: Check if we've already sent a message to this LinkedIn ID
-    // This prevents duplicates when the same person has multiple connection records
+    // This prevents duplicates when:
+    // 1. Same person has multiple connection records (data quality issue)
+    // 2. Multiple workers/crons are running simultaneously (race condition)
+    // 3. Already sent in THIS campaign (duplicate in same campaign)
+    // 4. Already sent in ANOTHER campaign (don't spam across campaigns)
+    //
+    // NOTE: Manual messages (sent outside campaigns) are NOT tracked in networking_outreach,
+    // so they won't block sending. Only campaign messages block.
     console.log(`🔍 Checking for duplicate messages to LinkedIn ID: ${connection.linkedin_id}`);
-    const { data: existingSent, error: duplicateCheckError } = await supabase
+    
+    // Get the campaign ID from the outreach record
+    const currentCampaignId = outreach.batch_id;
+    
+    // Check 1: Same campaign duplicate (most important - prevents sending twice in same campaign)
+    const { data: sameCampaignSent, error: sameCampaignError } = await supabase
       .from('networking_outreach')
       .select(`
         id,
         status,
         sent_at,
+        batch_id,
         linkedin_connections!inner(linkedin_id)
       `)
       .eq('status', 'sent')
       .not('sent_at', 'is', null)
+      .eq('batch_id', currentCampaignId) // Same campaign
       .eq('linkedin_connections.linkedin_id', connection.linkedin_id);
 
-    if (duplicateCheckError) {
-      console.error(`⚠️  Error checking for duplicates:`, duplicateCheckError);
-      // Continue anyway - better to log the error than block sending
-    } else if (existingSent && existingSent.length > 0) {
-      // Found existing sent message(s) to this LinkedIn ID
-      const existingRecord = existingSent[0];
-      console.log(`⚠️  DUPLICATE DETECTED: Already sent message to LinkedIn ID ${connection.linkedin_id}`);
+    if (sameCampaignError) {
+      console.error(`⚠️  Error checking for same-campaign duplicates:`, sameCampaignError);
+    } else if (sameCampaignSent && sameCampaignSent.length > 0) {
+      const existingRecord = sameCampaignSent[0];
+      console.log(`⚠️  DUPLICATE DETECTED: Already sent message in THIS campaign to LinkedIn ID ${connection.linkedin_id}`);
       console.log(`   Previous message ID: ${existingRecord.id}`);
       console.log(`   Previous sent at: ${existingRecord.sent_at}`);
-      console.log(`   Skipping this message to prevent duplicate`);
+      console.log(`   Skipping this message to prevent duplicate in same campaign`);
       
       await supabase
         .from('networking_outreach')
         .update({
           status: 'skipped',
-          skip_reason: `Duplicate: Already sent to LinkedIn ID ${connection.linkedin_id} (previous: ${existingRecord.id})`
+          skip_reason: `Duplicate: Already sent in this campaign to LinkedIn ID ${connection.linkedin_id} (previous: ${existingRecord.id})`
         })
         .eq('id', outreach.id);
       
       return false; // Skipped due to duplicate
-    } else {
-      console.log(`✅ No duplicate found - safe to send`);
     }
+
+    // Check 2: Different campaign (prevent sending across multiple campaigns)
+    const { data: otherCampaignSent, error: otherCampaignError } = await supabase
+      .from('networking_outreach')
+      .select(`
+        id,
+        status,
+        sent_at,
+        batch_id,
+        linkedin_connections!inner(linkedin_id),
+        networking_campaign_batches!inner(name)
+      `)
+      .eq('status', 'sent')
+      .not('sent_at', 'is', null)
+      .neq('batch_id', currentCampaignId) // Different campaign
+      .eq('linkedin_connections.linkedin_id', connection.linkedin_id);
+
+    if (otherCampaignError) {
+      console.error(`⚠️  Error checking for other-campaign duplicates:`, otherCampaignError);
+      // Continue anyway - better to log the error than block sending
+    } else if (otherCampaignSent && otherCampaignSent.length > 0) {
+      const existingRecord = otherCampaignSent[0];
+      const campaignName = existingRecord.networking_campaign_batches?.name || 'Unknown Campaign';
+      console.log(`⚠️  CROSS-CAMPAIGN DETECTED: Already sent message in ANOTHER campaign to LinkedIn ID ${connection.linkedin_id}`);
+      console.log(`   Previous campaign: ${campaignName}`);
+      console.log(`   Previous message ID: ${existingRecord.id}`);
+      console.log(`   Previous sent at: ${existingRecord.sent_at}`);
+      console.log(`   Skipping this message to avoid spamming across campaigns`);
+      
+      await supabase
+        .from('networking_outreach')
+        .update({
+          status: 'skipped',
+          skip_reason: `Cross-campaign: Already sent in "${campaignName}" campaign to LinkedIn ID ${connection.linkedin_id} (previous: ${existingRecord.id})`
+        })
+        .eq('id', outreach.id);
+      
+      return false; // Skipped due to cross-campaign
+    }
+
+    console.log(`✅ No duplicate found - safe to send (no messages in this or other campaigns)`);
 
     // Send via Unipile
     console.log(`📤 Sending message via Unipile API...`);
