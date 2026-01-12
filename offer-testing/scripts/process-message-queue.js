@@ -413,12 +413,20 @@ The cron job will automatically resume processing once reconnected.`,
       const result = await response.json();
       console.log(`✅ Unipile API success:`, result);
 
-      // Update status
+      // Extract message ID and chat ID from Unipile response
+      // Unipile returns: { id: "message_id", conversation_id: "chat_id", ... }
+      const unipileMessageId = result.id || result.message_id;
+      const unipileChatId = result.conversation_id || result.chat_id || result.conversationId;
+
+      // Update status with Unipile tracking IDs for webhook matching
       await supabase
         .from('networking_outreach')
         .update({
           status: 'sent',
-          sent_at: new Date().toISOString()
+          sent_at: new Date().toISOString(),
+          unipile_message_id: unipileMessageId || null,
+          unipile_chat_id: unipileChatId || null,
+          updated_at: new Date().toISOString()
         })
         .eq('id', outreach.id);
 
