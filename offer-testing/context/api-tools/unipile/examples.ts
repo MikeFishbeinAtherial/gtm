@@ -103,7 +103,7 @@ export async function getMessageHistory(accountId: string) {
 
     history.push({
       conversation_id: conv.id,
-      participant: conv.participants.find(p => !p.is_me),
+      participant: conv.participants.find(p => !p.is_me) || conv.participants[0],
       message_count: messages.length,
       last_message: messages[messages.length - 1],
       unread_count: conv.unread_count

@@ -45,6 +45,7 @@ export interface UnipileConversation {
     name: string
     linkedin_url?: string
     email?: string
+    is_me?: boolean
   }[]
   last_message?: UnipileMessage
   unread_count: number
