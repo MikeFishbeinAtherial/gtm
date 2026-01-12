@@ -82,6 +82,7 @@ let errors = 0;
 for (const connection of connections) {
   try {
     // Check if message already exists for this contact in this campaign
+    // First check by connection_id (same record)
     const { data: existing } = await supabase
       .from('networking_outreach')
       .select('id')
@@ -93,6 +94,43 @@ for (const connection of connections) {
       skipped++;
       process.stdout.write(`\rGenerated: ${generated} | Skipped: ${skipped} | Errors: ${errors}`);
       continue;
+    }
+
+    // CRITICAL: Also check by LinkedIn ID/URL to prevent duplicates
+    // This catches cases where the same person has multiple connection records
+    if (connection.linkedin_id && !connection.linkedin_id.startsWith('temp_')) {
+      const { data: existingByLinkedInId } = await supabase
+        .from('networking_outreach')
+        .select(`
+          id,
+          linkedin_connections!inner(linkedin_id)
+        `)
+        .eq('batch_id', campaign.id)
+        .eq('linkedin_connections.linkedin_id', connection.linkedin_id);
+
+      if (existingByLinkedInId && existingByLinkedInId.length > 0) {
+        skipped++;
+        process.stdout.write(`\rGenerated: ${generated} | Skipped: ${skipped} | Errors: ${errors}`);
+        continue;
+      }
+    }
+
+    // Also check by LinkedIn URL if available
+    if (connection.linkedin_url) {
+      const { data: existingByUrl } = await supabase
+        .from('networking_outreach')
+        .select(`
+          id,
+          linkedin_connections!inner(linkedin_url)
+        `)
+        .eq('batch_id', campaign.id)
+        .eq('linkedin_connections.linkedin_url', connection.linkedin_url);
+
+      if (existingByUrl && existingByUrl.length > 0) {
+        skipped++;
+        process.stdout.write(`\rGenerated: ${generated} | Skipped: ${skipped} | Errors: ${errors}`);
+        continue;
+      }
     }
 
     // Personalize message

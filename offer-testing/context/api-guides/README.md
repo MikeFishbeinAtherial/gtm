@@ -4,6 +4,9 @@ Context documents explaining when and how to use each API in the Offer Testing S
 
 ## Available Guides
 
+> **Note:** Detailed API documentation has been moved to `../api-tools/` with examples and setup guides.  
+> These quick references remain here for fast lookup during development.
+
 ### [Exa Usage Guide](./exa-usage-guide.md)
 **When to use:** Finding companies and people by qualitative criteria, research, industry insights
 
@@ -30,7 +33,8 @@ Context documents explaining when and how to use each API in the Offer Testing S
 
 ---
 
-### [Sumble Usage Guide](../apis/sumble.md)
+### [Sumble Usage Guide](./sumble.md)
+**See also:** `../api-tools/sumble/` for detailed docs and examples
 **When to use:** Finding hiring signals and validating technology stacks
 
 **Key capabilities:**
@@ -57,12 +61,13 @@ Context documents explaining when and how to use each API in the Offer Testing S
 - Verify email deliverability
 - Bulk email lookups
 
-### Unipile
+### [Unipile](../api-tools/unipile/)
 **When to use:** LinkedIn and email outreach
 - Send LinkedIn connection requests
 - Send LinkedIn messages
 - Manage inbox and replies
 - Send emails
+- Sync connections and message history
 
 ---
 
