@@ -22,16 +22,23 @@ const projectRoot = join(__dirname, '..');
 
 // Check if this is a cron run
 // Railway cron jobs may set different environment variables
-const isCronRun = process.argv.includes('--cron') ||
-                  process.env.RAILWAY_STATIC_URL ||
-                  process.env.CRON_JOB === 'true' ||
-                  process.env.RAILWAY_DEPLOYMENT_TRIGGER === 'CRON' ||
-                  // Fallback: check if we have cron-specific environment
-                  (process.env.RAILWAY_ENVIRONMENT && !process.env.PORT);
+const cronSignals = {
+  argv: process.argv.includes('--cron'),
+  cronJobEnv: process.env.CRON_JOB === 'true',
+  cronEnv: process.env.CRON === 'true',
+  railwayCronEnv: process.env.RAILWAY_CRON === 'true',
+  railwayRunType: process.env.RAILWAY_RUN_TYPE === 'CRON',
+  railwayDeploymentTrigger: process.env.RAILWAY_DEPLOYMENT_TRIGGER === 'CRON',
+  railwayStaticUrl: Boolean(process.env.RAILWAY_STATIC_URL),
+  railwayEnvNoPort: Boolean(process.env.RAILWAY_ENVIRONMENT && !process.env.PORT)
+};
+
+const isCronRun = Object.values(cronSignals).some(Boolean);
 
 console.log(`🚀 Railway Service Starting...`);
 console.log(`📅 Mode: ${isCronRun ? 'CRON JOB' : 'WEB APP'}`);
 console.log(`⏰ Time: ${new Date().toISOString()}`);
+console.log(`🧭 Cron detection: ${JSON.stringify(cronSignals)}`);
 
 if (isCronRun) {
   console.log('📋 Running message queue processor...');

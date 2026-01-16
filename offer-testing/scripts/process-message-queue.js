@@ -42,6 +42,8 @@ const BUSINESS_HOURS_START = 9; // 9 AM ET
 const BUSINESS_HOURS_END = 18; // 6 PM ET
 const SEND_DAYS = [1, 2, 3, 4, 5]; // Mon-Fri
 const MAX_MESSAGES_PER_DAY = 38; // Safety cap (<= 40/day)
+const JITTER_MIN_SECONDS = 15;
+const JITTER_MAX_SECONDS = 120;
 
 if (!UNIPILE_DSN || !UNIPILE_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('❌ Missing required environment variables');
@@ -62,6 +64,16 @@ function formatDuration(ms) {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
   return `${minutes}m ${remainingSeconds}s`;
+}
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+async function applyCronJitter() {
+  const delaySeconds = getRandomInt(JITTER_MIN_SECONDS, JITTER_MAX_SECONDS);
+  console.log(`🎲 Cron jitter: waiting ${delaySeconds}s before send`);
+  await sleep(delaySeconds * 1000);
 }
 
 async function updateOutreachStatusWithRetry(outreachId, expectedStatus, updates, label) {
@@ -551,6 +563,9 @@ The cron job will automatically resume processing once reconnected.`,
       return false; // Skip - another process is handling this
     }
     console.log(`✅ Lock acquired - proceeding with send`);
+
+    // Add randomized delay per cron run (15-120s)
+    await applyCronJitter();
 
     await logSendAudit({
       outreach,
