@@ -3,7 +3,7 @@ builder = "NIXPACKS"
 buildCommand = "npm run build"
 
 [deploy]
-startCommand = "cd offer-testing && node scripts/start-service.js"
+startCommand = "cd offer-testing && node scripts/start-service.js --cron"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
