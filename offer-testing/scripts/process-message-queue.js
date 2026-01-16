@@ -72,8 +72,9 @@ function getRandomInt(min, max) {
 
 async function applyCronJitter() {
   const delaySeconds = getRandomInt(JITTER_MIN_SECONDS, JITTER_MAX_SECONDS);
-  console.log(`🎲 Cron jitter: waiting ${delaySeconds}s before send`);
+  console.log(`⏳ Adding random delay: ${delaySeconds}s (to avoid detection patterns)`);
   await sleep(delaySeconds * 1000);
+  console.log(`✅ Delay complete, starting message processing...`);
 }
 
 async function updateOutreachStatusWithRetry(outreachId, expectedStatus, updates, label) {
@@ -564,8 +565,6 @@ The cron job will automatically resume processing once reconnected.`,
     }
     console.log(`✅ Lock acquired - proceeding with send`);
 
-    // Add randomized delay per cron run (15-120s)
-    await applyCronJitter();
 
     await logSendAudit({
       outreach,
@@ -1164,7 +1163,7 @@ This email confirms the cron job ran successfully.
   }
 }
 
-// Check if it's time to send digest email (at 7am, noon, 4pm, 7pm ET)
+// Check if it's time to send digest email (9:30am, noon, 6pm ET on weekdays)
 async function shouldSendDigest() {
   try {
     // Get current time in ET
@@ -1172,15 +1171,28 @@ async function shouldSendDigest() {
     const etTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
     const etHour = etTime.getHours();
     const etMinute = etTime.getMinutes();
+    const etDay = etTime.getDay();
+
+    // Weekdays only (Mon-Fri)
+    if (![1, 2, 3, 4, 5].includes(etDay)) {
+      return false;
+    }
     
-    // Define digest times: 7am (7), noon (12), 4pm (16), 7pm (19) ET
-    const digestTimes = [7, 12, 16, 19];
-    
-    // Check if current hour matches a digest time (within 5 minutes of the hour)
-    const isDigestHour = digestTimes.includes(etHour);
-    const isWithinWindow = etMinute >= 0 && etMinute < 5; // Send between :00 and :05
-    
-    if (!isDigestHour || !isWithinWindow) {
+    // Define digest slots (hour + minute)
+    const digestSlots = [
+      { hour: 9, minute: 30 },
+      { hour: 12, minute: 0 },
+      { hour: 18, minute: 0 }
+    ];
+
+    // Send within 5-minute window of each slot
+    const nowTotalMinutes = etHour * 60 + etMinute;
+    const isWithinAnySlotWindow = digestSlots.some(s => {
+      const slotMinutes = s.hour * 60 + s.minute;
+      return nowTotalMinutes >= slotMinutes && nowTotalMinutes < slotMinutes + 5;
+    });
+
+    if (!isWithinAnySlotWindow) {
       return false;
     }
     
@@ -1206,14 +1218,15 @@ async function shouldSendDigest() {
     const lastDigestTime = new Date(metadata.last_digest_sent_at);
     const lastDigestET = new Date(lastDigestTime.toLocaleString('en-US', { timeZone: 'America/New_York' }));
     
-    // Check if we already sent today at this hour
+    // Check if we already sent today in this same digest window
     const sameDay = lastDigestET.getDate() === etTime.getDate() && 
                    lastDigestET.getMonth() === etTime.getMonth() &&
                    lastDigestET.getFullYear() === etTime.getFullYear();
+    const sameMinuteBucket = Math.floor(lastDigestET.getMinutes() / 5) === Math.floor(etMinute / 5);
     const sameHour = lastDigestET.getHours() === etHour;
     
-    if (sameDay && sameHour) {
-      return false; // Already sent for this hour today
+    if (sameDay && sameHour && sameMinuteBucket) {
+      return false; // Already sent in this window
     }
     
     return true; // Time to send!
@@ -1394,13 +1407,9 @@ async function main() {
   console.log(`   RESEND_API_KEY: ${RESEND_API_KEY ? 'SET' : 'MISSING'}`);
   console.log(`   NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL ? NOTIFICATION_EMAIL : 'MISSING'}`);
 
-  // Add random delay (10-120 seconds) to avoid predictable send patterns
+  // Add random delay (15-120 seconds) to avoid predictable send patterns
   // This prevents LinkedIn from detecting automation based on exact timing
-  const randomDelayMs = Math.floor(Math.random() * 110000) + 10000; // 10-120 seconds
-  const randomDelaySeconds = Math.floor(randomDelayMs / 1000);
-  console.log(`⏳ Adding random delay: ${randomDelaySeconds}s (to avoid detection patterns)`);
-  await sleep(randomDelayMs);
-  console.log(`✅ Delay complete, starting message processing...`);
+  await applyCronJitter();
 
   // Cron test email disabled - only send notifications when messages are actually sent
   // await sendCronTestEmail();
@@ -1409,7 +1418,7 @@ async function main() {
     await processDueMessages();
     console.log('✅ Processing complete');
     
-    // Check if it's time to send digest email (7am, noon, 4pm, 7pm ET)
+    // Check if it's time to send digest email (9:30am, noon, 6pm ET on weekdays)
     if (await shouldSendDigest()) {
       console.log('📧 Time to send digest email...');
       await sendDigestEmail();
@@ -1418,16 +1427,25 @@ async function main() {
       const now = new Date();
       const etTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
       const etHour = etTime.getHours();
+      const etMinute = etTime.getMinutes();
       
-      // Find next digest time: 7am (7), noon (12), 4pm (16), 7pm (19) ET
-      const digestTimes = [7, 12, 16, 19];
-      let nextDigestHour = digestTimes.find(h => h > etHour);
-      if (!nextDigestHour) {
-        // If past 7pm, next is 7am tomorrow
-        nextDigestHour = 7;
+      // Find next digest time: 9:30am, 12:00pm, 6:00pm ET (weekdays)
+      const digestSlots = [
+        { hour: 9, minute: 30 },
+        { hour: 12, minute: 0 },
+        { hour: 18, minute: 0 }
+      ];
+
+      const nowMinutes = etHour * 60 + etMinute;
+      let next = digestSlots.find(s => (s.hour * 60 + s.minute) > nowMinutes);
+
+      if (!next) {
+        // Next is tomorrow at 9:30am
+        next = digestSlots[0];
         etTime.setDate(etTime.getDate() + 1);
       }
-      etTime.setHours(nextDigestHour, 0, 0, 0);
+
+      etTime.setHours(next.hour, next.minute, 0, 0);
       
       const nextDigestET = etTime.toLocaleString('en-US', { 
         timeZone: 'America/New_York',
