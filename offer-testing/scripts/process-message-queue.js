@@ -352,7 +352,7 @@ The cron job will automatically resume processing once reconnected.`,
 
     // Query due networking messages (only 1 per run for spacing)
     // IMPORTANT: Only from ACTIVE campaigns (not paused, draft, or completed)
-    console.log('🔍 Querying for due networking messages from ACTIVE campaigns...');
+    console.log('🔍 Querying for due networking messages from IN_PROGRESS campaigns...');
     const { data: networkingMessages, error } = await supabase
       .from('networking_outreach')
       .select(`
@@ -361,7 +361,7 @@ The cron job will automatically resume processing once reconnected.`,
         networking_campaign_batches!inner(id, name, status)
       `)
       .eq('status', 'pending')
-      .eq('networking_campaign_batches.status', 'active')  // CRITICAL: Only active campaigns!
+      .eq('networking_campaign_batches.status', 'in_progress')  // CRITICAL: Only in-progress campaigns!
       .not('scheduled_at', 'is', null)
       .lte('scheduled_at', new Date().toISOString())
       .order('scheduled_at', { ascending: true })
@@ -552,6 +552,23 @@ The cron job will automatically resume processing once reconnected.`,
     }
     console.log(`✅ Lock acquired - proceeding with send`);
 
+    await logSendAudit({
+      outreach,
+      connection,
+      stage: 'about_to_send',
+      statusBefore: 'pending',
+      statusAfter: 'sending',
+      statusUpdateSuccess: true
+    });
+
+    await sendNetworkingLifecycleEmail({
+      stage: 'about_to_send',
+      outreach,
+      connection,
+      campaignName: outreach.networking_campaign_batches?.name,
+      statusUpdated: true
+    });
+
     // Send via Unipile
     console.log(`📤 Sending message via Unipile API...`);
     console.log(`   Account ID: ${unipileAccountId}`);
@@ -638,7 +655,28 @@ The cron job will automatically resume processing once reconnected.`,
         }
       }
 
-      // Send success notification
+      await logSendAudit({
+        outreach,
+        connection,
+        stage: 'sent',
+        statusBefore: 'sending',
+        statusAfter: 'sent',
+        statusUpdateSuccess: sentUpdated,
+        unipileMessageId,
+        unipileChatId
+      });
+
+      await sendNetworkingLifecycleEmail({
+        stage: 'sent',
+        outreach,
+        connection,
+        campaignName: outreach.networking_campaign_batches?.name,
+        statusUpdated: sentUpdated,
+        unipileMessageId,
+        unipileChatId
+      });
+
+      // Send success notification (digest queue)
       await sendNetworkingNotification(outreach, connection, { success: true, message_id: result.id });
 
       console.log(`✅ Networking message sent to ${connection.first_name} ${connection.last_name || ''}`);
@@ -650,7 +688,7 @@ The cron job will automatically resume processing once reconnected.`,
       console.error(`❌ Failed to send networking message:`, error.message);
 
       // Update status to failed (only if we still hold the lock)
-      await updateOutreachStatusWithRetry(
+      const failedUpdated = await updateOutreachStatusWithRetry(
         outreach.id,
         'sending',
         {
@@ -659,6 +697,25 @@ The cron job will automatically resume processing once reconnected.`,
         },
         'mark failed'
       );
+
+      await logSendAudit({
+        outreach,
+        connection,
+        stage: 'failed',
+        statusBefore: 'sending',
+        statusAfter: 'failed',
+        statusUpdateSuccess: failedUpdated,
+        errorMessage: error.message
+      });
+
+      await sendNetworkingLifecycleEmail({
+        stage: 'failed',
+        outreach,
+        connection,
+        campaignName: outreach.networking_campaign_batches?.name,
+        statusUpdated: failedUpdated,
+        error: error.message
+      });
 
       // Send failure notification
       await sendNetworkingNotification(outreach, connection, { success: false, error: error.message });
@@ -901,6 +958,106 @@ async function sendNetworkingNotification(outreach, connection, sendResult) {
   } catch (error) {
     console.warn('⚠️ Failed to add notification to digest queue:', error.message);
   }
+}
+
+// Build recipient list from NOTIFICATION_EMAIL (comma-separated)
+function getNotificationRecipients() {
+  return (NOTIFICATION_EMAIL || '')
+    .split(',')
+    .map(email => email.trim())
+    .filter(Boolean);
+}
+
+// Send an immediate Resend email (pre-send and post-send alerts)
+async function sendImmediateEmail(subject, body) {
+  if (!RESEND_API_KEY || !NOTIFICATION_EMAIL) return;
+
+  const recipients = getNotificationRecipients();
+  if (recipients.length === 0) return;
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'notifications@atherial.ai',
+        to: recipients,
+        subject,
+        text: body
+      })
+    });
+
+    if (!response.ok) {
+      console.warn('⚠️  Resend email failed:', response.status, response.statusText);
+    }
+  } catch (error) {
+    console.warn('⚠️  Resend email error:', error.message);
+  }
+}
+
+async function logSendAudit({
+  outreach,
+  connection,
+  stage,
+  statusBefore,
+  statusAfter,
+  statusUpdateSuccess,
+  unipileMessageId,
+  unipileChatId,
+  errorMessage,
+  metadata
+}) {
+  try {
+    await supabase
+      .from('message_send_audit')
+      .insert({
+        outreach_id: outreach?.id || null,
+        campaign_id: outreach?.batch_id || null,
+        linkedin_id: connection?.linkedin_id || null,
+        linkedin_url: connection?.linkedin_url || null,
+        unipile_message_id: unipileMessageId || null,
+        unipile_chat_id: unipileChatId || null,
+        status_before: statusBefore || null,
+        status_after: statusAfter || null,
+        stage,
+        status_update_success: statusUpdateSuccess ?? null,
+        error_message: errorMessage || null,
+        metadata: metadata || null
+      });
+  } catch (error) {
+    console.warn('⚠️  Failed to write message_send_audit:', error.message);
+  }
+}
+
+// Send detailed lifecycle notifications for networking outreach
+async function sendNetworkingLifecycleEmail({ stage, outreach, connection, campaignName, statusUpdated, unipileMessageId, unipileChatId, error }) {
+  if (!RESEND_API_KEY || !NOTIFICATION_EMAIL) return;
+
+  const stageLabel = stage === 'about_to_send' ? 'ABOUT TO SEND' : stage.toUpperCase();
+  const subject = `📨 ${stageLabel}: ${connection.first_name} ${connection.last_name || ''}`.trim();
+
+  const lines = [
+    `Stage: ${stageLabel}`,
+    `Time (UTC): ${new Date().toISOString()}`,
+    `Campaign: ${campaignName || 'Unknown'}`,
+    `Outreach ID: ${outreach.id}`,
+    `Recipient: ${connection.first_name} ${connection.last_name || ''}`.trim(),
+    `LinkedIn ID: ${connection.linkedin_id || 'MISSING'}`,
+    `LinkedIn URL: ${connection.linkedin_url || 'MISSING'}`,
+    `Scheduled At: ${outreach.scheduled_at || 'MISSING'}`,
+    `DB Status Updated: ${statusUpdated === undefined ? 'N/A' : (statusUpdated ? 'YES' : 'NO')}`,
+    unipileMessageId ? `Unipile Message ID: ${unipileMessageId}` : null,
+    unipileChatId ? `Unipile Chat ID: ${unipileChatId}` : null,
+    error ? `Error: ${error}` : null,
+    '',
+    'Message Preview:',
+    (outreach.personalized_message || '').slice(0, 600)
+  ].filter(Boolean);
+
+  await sendImmediateEmail(subject, lines.join('\n'));
 }
 
 async function notifyViaEmail(message, sendResult) {

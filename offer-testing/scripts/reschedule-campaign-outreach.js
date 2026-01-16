@@ -268,7 +268,7 @@ async function main() {
   }
 
   console.log(`✅ Rescheduled ${scheduledCount} messages`);
-  console.log('   Next step: set campaign status to "active" when ready to send.');
+  console.log('   Next step: set campaign status to "in_progress" when ready to send.');
 }
 
 main().catch(error => {

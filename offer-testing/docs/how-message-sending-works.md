@@ -45,7 +45,7 @@ Messages are sent via two scripts that run on Railway:
 2. Script queries for messages WHERE:
    - networking_outreach.status = 'pending'
    - networking_outreach.scheduled_at <= NOW()
-   - networking_campaign_batches.status = 'active'  ← CRITICAL!
+   - networking_campaign_batches.status = 'in_progress'  ← CRITICAL!
    - Within send window (Mon-Fri, 9am-6pm ET)
    - Daily limit not exceeded (max 38/day)
 
@@ -105,7 +105,7 @@ Disconnect GitHub from Railway to stop all cron jobs.
 1. Create campaign with status = 'draft'
 2. Generate messages (creates outreach records with status = 'pending')
 3. Schedule messages (set scheduled_at)
-4. Activate campaign: `UPDATE networking_campaign_batches SET status = 'active'`
+4. Activate campaign: `UPDATE networking_campaign_batches SET status = 'in_progress'`
 
 ---
 
