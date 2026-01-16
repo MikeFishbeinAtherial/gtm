@@ -575,13 +575,14 @@ The cron job will automatically resume processing once reconnected.`,
       statusUpdateSuccess: true
     });
 
-    await sendNetworkingLifecycleEmail({
-      stage: 'about_to_send',
-      outreach,
-      connection,
-      campaignName: outreach.networking_campaign_batches?.name,
-      statusUpdated: true
-    });
+    // Immediate email notifications disabled - using 3x daily digest instead
+    // await sendNetworkingLifecycleEmail({
+    //   stage: 'about_to_send',
+    //   outreach,
+    //   connection,
+    //   campaignName: outreach.networking_campaign_batches?.name,
+    //   statusUpdated: true
+    // });
 
     // Send via Unipile
     console.log(`📤 Sending message via Unipile API...`);
@@ -680,15 +681,16 @@ The cron job will automatically resume processing once reconnected.`,
         unipileChatId
       });
 
-      await sendNetworkingLifecycleEmail({
-        stage: 'sent',
-        outreach,
-        connection,
-        campaignName: outreach.networking_campaign_batches?.name,
-        statusUpdated: sentUpdated,
-        unipileMessageId,
-        unipileChatId
-      });
+      // Immediate email notifications disabled - using 3x daily digest instead
+      // await sendNetworkingLifecycleEmail({
+      //   stage: 'sent',
+      //   outreach,
+      //   connection,
+      //   campaignName: outreach.networking_campaign_batches?.name,
+      //   statusUpdated: sentUpdated,
+      //   unipileMessageId,
+      //   unipileChatId
+      // });
 
       // Send success notification (digest queue)
       await sendNetworkingNotification(outreach, connection, { success: true, message_id: result.id });
@@ -722,14 +724,15 @@ The cron job will automatically resume processing once reconnected.`,
         errorMessage: error.message
       });
 
-      await sendNetworkingLifecycleEmail({
-        stage: 'failed',
-        outreach,
-        connection,
-        campaignName: outreach.networking_campaign_batches?.name,
-        statusUpdated: failedUpdated,
-        error: error.message
-      });
+      // Immediate email notifications disabled - using 3x daily digest instead
+      // await sendNetworkingLifecycleEmail({
+      //   stage: 'failed',
+      //   outreach,
+      //   connection,
+      //   campaignName: outreach.networking_campaign_batches?.name,
+      //   statusUpdated: failedUpdated,
+      //   error: error.message
+      // });
 
       // Send failure notification
       await sendNetworkingNotification(outreach, connection, { success: false, error: error.message });
