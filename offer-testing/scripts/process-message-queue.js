@@ -36,6 +36,13 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || 'notifications@yourdomain.com';
 
+// Sending window + safety limits (LinkedIn safety rules)
+const TIMEZONE = 'America/New_York';
+const BUSINESS_HOURS_START = 9; // 9 AM ET
+const BUSINESS_HOURS_END = 18; // 6 PM ET
+const SEND_DAYS = [1, 2, 3, 4, 5]; // Mon-Fri
+const MAX_MESSAGES_PER_DAY = 38; // Safety cap (<= 40/day)
+
 if (!UNIPILE_DSN || !UNIPILE_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('❌ Missing required environment variables');
   console.error('Required: UNIPILE_DSN, UNIPILE_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_KEY');
@@ -55,6 +62,56 @@ function formatDuration(ms) {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
   return `${minutes}m ${remainingSeconds}s`;
+}
+
+async function updateOutreachStatusWithRetry(outreachId, expectedStatus, updates, label) {
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const { error } = await supabase
+      .from('networking_outreach')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', outreachId)
+      .eq('status', expectedStatus);
+
+    if (!error) {
+      return true;
+    }
+
+    console.warn(`⚠️  Failed to update outreach (${label}) attempt ${attempt}/${maxAttempts}:`, error.message);
+    await sleep(500 * attempt);
+  }
+
+  console.error(`❌ Could not update outreach (${label}) after ${maxAttempts} attempts`);
+  return false;
+}
+
+function getNowInTimeZone() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: TIMEZONE }));
+}
+
+function isWithinSendWindow(dateInTz) {
+  const day = dateInTz.getDay();
+  const hour = dateInTz.getHours();
+  const isWeekday = SEND_DAYS.includes(day);
+  const isWithinHours = hour >= BUSINESS_HOURS_START && hour < BUSINESS_HOURS_END;
+  return isWeekday && isWithinHours;
+}
+
+function getDayBoundsUtc(dateInTz) {
+  const startInTz = new Date(dateInTz);
+  startInTz.setHours(0, 0, 0, 0);
+
+  const endInTz = new Date(startInTz);
+  endInTz.setDate(endInTz.getDate() + 1);
+
+  const offsetMs = Date.now() - getNowInTimeZone().getTime();
+  const startUtc = new Date(startInTz.getTime() + offsetMs);
+  const endUtc = new Date(endInTz.getTime() + offsetMs);
+
+  return { startUtc, endUtc };
 }
 
 // Unipile API helpers
@@ -203,6 +260,29 @@ async function processNetworkingMessages() {
   try {
     console.log('🔍 Checking for due networking messages...');
 
+    const nowInTz = getNowInTimeZone();
+    if (!isWithinSendWindow(nowInTz)) {
+      console.log(`⏰ Outside send window (${nowInTz.toLocaleString('en-US', { timeZone: TIMEZONE })} ET)`);
+      console.log(`   Allowed: Mon-Fri, ${BUSINESS_HOURS_START}am-${BUSINESS_HOURS_END}pm ET`);
+      return false;
+    }
+
+    // Daily safety cap (global across networking_outreach)
+    const { startUtc, endUtc } = getDayBoundsUtc(nowInTz);
+    const { count: sentToday, error: sentCountError } = await supabase
+      .from('networking_outreach')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'sent')
+      .gte('sent_at', startUtc.toISOString())
+      .lt('sent_at', endUtc.toISOString());
+
+    if (sentCountError) {
+      console.warn('⚠️  Could not check daily send count:', sentCountError.message);
+    } else if ((sentToday || 0) >= MAX_MESSAGES_PER_DAY) {
+      console.log(`🛑 Daily limit reached (${sentToday}/${MAX_MESSAGES_PER_DAY}) - skipping send`);
+      return false;
+    }
+
     // Get Unipile account
     console.log(`📡 Fetching Unipile accounts from ${UNIPILE_DSN}/accounts`);
     const accountsResponse = await fetch(`${UNIPILE_DSN}/accounts`, {
@@ -333,6 +413,33 @@ The cron job will automatically resume processing once reconnected.`,
         })
         .eq('id', outreach.id);
       return false; // Skipped, not processed
+    }
+
+    // Respect do_not_message list (manual block list)
+    const orFilters = [`linkedin_id.eq.${connection.linkedin_id}`];
+    if (connection.linkedin_url) {
+      orFilters.push(`linkedin_url.eq.${connection.linkedin_url}`);
+    }
+
+    const { data: blockedList, error: blockedError } = await supabase
+      .from('do_not_message')
+      .select('id, reason')
+      .or(orFilters.join(','))
+      .limit(1);
+
+    if (blockedError) {
+      console.warn('⚠️  Could not check do_not_message list:', blockedError.message);
+    } else if (blockedList && blockedList.length > 0) {
+      const reason = blockedList[0].reason || 'Do not message';
+      console.log(`⛔ Skipping ${connection.first_name}: ${reason}`);
+      await supabase
+        .from('networking_outreach')
+        .update({
+          status: 'skipped',
+          skip_reason: `Do not message: ${reason}`
+        })
+        .eq('id', outreach.id);
+      return false; // Skipped due to block list
     }
 
     // CRITICAL: Check if we've already sent a message to this LinkedIn ID
@@ -496,17 +603,21 @@ The cron job will automatically resume processing once reconnected.`,
 
       // Update status with Unipile tracking IDs for webhook matching
       // Only update if we still hold the lock (status = 'sending')
-      await supabase
-        .from('networking_outreach')
-        .update({
+      const sentUpdated = await updateOutreachStatusWithRetry(
+        outreach.id,
+        'sending',
+        {
           status: 'sent',
           sent_at: new Date().toISOString(),
           unipile_message_id: unipileMessageId || null,
-          unipile_chat_id: unipileChatId || null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', outreach.id)
-        .eq('status', 'sending');  // Only update if we still hold the lock
+          unipile_chat_id: unipileChatId || null
+        },
+        'mark sent'
+      );
+
+      if (!sentUpdated) {
+        console.warn(`⚠️  Message was sent but DB update failed for outreach ${outreach.id}`);
+      }
 
       // Update campaign batch stats
       if (outreach.batch_id) {
@@ -539,15 +650,15 @@ The cron job will automatically resume processing once reconnected.`,
       console.error(`❌ Failed to send networking message:`, error.message);
 
       // Update status to failed (only if we still hold the lock)
-      await supabase
-        .from('networking_outreach')
-        .update({
+      await updateOutreachStatusWithRetry(
+        outreach.id,
+        'sending',
+        {
           status: 'failed',
-          skip_reason: error.message,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', outreach.id)
-        .eq('status', 'sending');  // Only update if we still hold the lock
+          skip_reason: error.message
+        },
+        'mark failed'
+      );
 
       // Send failure notification
       await sendNetworkingNotification(outreach, connection, { success: false, error: error.message });

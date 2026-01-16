@@ -1,6 +1,6 @@
 # How Message Sending Works
 
-**Last Updated:** January 13, 2026
+**Last Updated:** January 16, 2026
 
 ---
 
@@ -46,13 +46,16 @@ Messages are sent via two scripts that run on Railway:
    - networking_outreach.status = 'pending'
    - networking_outreach.scheduled_at <= NOW()
    - networking_campaign_batches.status = 'active'  ← CRITICAL!
+   - Within send window (Mon-Fri, 9am-6pm ET)
+   - Daily limit not exceeded (max 38/day)
 
 3. If message found:
    a. Set status = 'sending' (atomic lock)
    b. Check for duplicates (same LinkedIn ID)
-   c. Send via Unipile API
-   d. Set status = 'sent', sent_at = NOW()
-   e. Increment campaign sent_count
+   c. Respect do_not_message list
+   d. Send via Unipile API
+   e. Set status = 'sent', sent_at = NOW() (with retries)
+   f. Increment campaign sent_count
 
 4. Message will NOT be sent again because status ≠ 'pending'
 ```

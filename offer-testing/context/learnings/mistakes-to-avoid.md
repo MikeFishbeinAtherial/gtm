@@ -48,11 +48,11 @@
 
 | Mistake | What Happened | Lesson |
 |---------|---------------|--------|
-| | | |
+| Messages sent via Unipile but DB not updated | Unipile showed messages sent while `networking_outreach.status` stayed `pending`, risking re-send | Always lock (`sending`), update with retries, and enforce DB-level safeguards |
 
 ---
 
 ## Last Updated
 
-{Date}
+2026-01-16
 

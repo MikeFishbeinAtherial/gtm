@@ -10,7 +10,7 @@
 
 | Campaign | Status | Companies Found | Response Rate | Meetings Booked | Key Learnings |
 |----------|--------|----------------|---------------|----------------|---------------|
-| TBD | Not started | - | - | - | - |
+| Atherial AI Roleplay Training - 2025 Q1 | Paused (restart prep) | - | - | - | Scheduling + duplicate-prevention fixes needed before restart |
 
 ---
 
@@ -67,5 +67,8 @@
 ---
 
 ## Notes
-*Add qualitative feedback, interesting conversations, patterns observed*
+### 2026-01-16 — Campaign restart prep
+- Messages were sent via Unipile but DB status did not update in some cases, which could allow re-sends.
+- Added stronger safeguards: atomic lock, duplicate checks, do-not-message list, daily caps, and send window enforcement.
+- Rescheduling needed because backlog built up while paused.
 

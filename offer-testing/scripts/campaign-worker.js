@@ -69,13 +69,14 @@ if (!CAMPAIGN_NAME) {
   process.exit(1);
 }
 
-// Safety settings (same as send-networking-campaign.js)
-const MAX_MESSAGES_PER_DAY = 50;
-const MIN_DELAY_MINUTES = 15;
-const MAX_DELAY_MINUTES = 45;
-const BUSINESS_HOURS_START = 6; // 6 AM ET
-const BUSINESS_HOURS_END = 20; // 8 PM ET
+// Safety settings (LinkedIn safety rules)
+const MAX_MESSAGES_PER_DAY = 38; // Safety cap (<= 40/day)
+const MIN_DELAY_MINUTES = 2;
+const MAX_DELAY_MINUTES = 5;
+const BUSINESS_HOURS_START = 9; // 9 AM ET
+const BUSINESS_HOURS_END = 18; // 6 PM ET
 const TIMEZONE = 'America/New_York';
+const SEND_DAYS = [1, 2, 3, 4, 5]; // Mon-Fri
 const CHECK_INTERVAL_MS = 60000; // Check every minute
 
 if (!UNIPILE_DSN || !UNIPILE_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
@@ -91,14 +92,16 @@ function isBusinessHours() {
   const now = new Date();
   const etTime = new Date(now.toLocaleString('en-US', { timeZone: TIMEZONE }));
   const hour = etTime.getHours();
+  const day = etTime.getDay();
   const month = etTime.getMonth();
   const date = etTime.getDate();
 
   const isChristmas = month === 11 && date === 25;
   if (isChristmas) return false;
 
+  const isWeekday = SEND_DAYS.includes(day);
   const isWithinHours = hour >= BUSINESS_HOURS_START && hour < BUSINESS_HOURS_END;
-  return isWithinHours;
+  return isWeekday && isWithinHours;
 }
 
 function getRandomDelay() {
@@ -364,6 +367,35 @@ async function runWorker() {
           })
           .eq('id', outreach.id);
         
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continue;
+      }
+
+      // Respect do_not_message list (manual block list)
+      const orFilters = [`linkedin_id.eq.${connection.linkedin_id}`];
+      if (connection.linkedin_url) {
+        orFilters.push(`linkedin_url.eq.${connection.linkedin_url}`);
+      }
+
+      const { data: blockedList, error: blockedError } = await supabase
+        .from('do_not_message')
+        .select('id, reason')
+        .or(orFilters.join(','))
+        .limit(1);
+
+      if (blockedError) {
+        console.warn('⚠️  Could not check do_not_message list:', blockedError.message);
+      } else if (blockedList && blockedList.length > 0) {
+        const reason = blockedList[0].reason || 'Do not message';
+        console.log(`⛔ Skipping ${connection.first_name}: ${reason}`);
+        await supabase
+          .from('networking_outreach')
+          .update({
+            status: 'skipped',
+            skip_reason: `Do not message: ${reason}`
+          })
+          .eq('id', outreach.id);
+
         await new Promise(resolve => setTimeout(resolve, 1000));
         continue;
       }
