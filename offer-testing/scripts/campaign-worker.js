@@ -9,7 +9,14 @@
  * Designed to run as a long-running process on Railway.
  * 
  * USAGE:
- *   node scripts/campaign-worker.js
+ *   node scripts/campaign-worker.js [campaign-name]
+ *   
+ *   Or set environment variable:
+ *   CAMPAIGN_NAME="Atherial AI Roleplay Training - 2025 Q1" node scripts/campaign-worker.js
+ * 
+ * EXAMPLES:
+ *   node scripts/campaign-worker.js "networking-holidays-2025"
+ *   node scripts/campaign-worker.js "Atherial AI Roleplay Training - 2025 Q1"
  * 
  * This will:
  * - Run continuously (never exits)
@@ -17,6 +24,7 @@
  * - Send messages respecting rate limits
  * - Auto-pause outside business hours
  * - Respect campaign pause status in Supabase
+ * - Update status to 'sent' after each message (prevents duplicates)
  */
 
 import dotenv from 'dotenv';
@@ -45,6 +53,21 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
 // Track notification state
 let dailyLimitNotified = false;
+
+// Campaign name from command line argument or environment variable
+// REQUIRED: Must specify which campaign to run
+const CAMPAIGN_NAME = process.argv[2] || process.env.CAMPAIGN_NAME;
+
+if (!CAMPAIGN_NAME) {
+  console.error('❌ ERROR: Campaign name is required!\n');
+  console.error('Usage:');
+  console.error('  node scripts/campaign-worker.js "campaign-name"');
+  console.error('  CAMPAIGN_NAME="campaign-name" node scripts/campaign-worker.js\n');
+  console.error('Examples:');
+  console.error('  node scripts/campaign-worker.js "networking-holidays-2025"');
+  console.error('  node scripts/campaign-worker.js "Atherial AI Roleplay Training - 2025 Q1"');
+  process.exit(1);
+}
 
 // Safety settings (same as send-networking-campaign.js)
 const MAX_MESSAGES_PER_DAY = 50;
@@ -160,8 +183,8 @@ async function runWorker() {
 
   // Send startup notification
   await sendNotification(
-    '🚀 Campaign Worker Started',
-    `Campaign worker has started successfully.\n\nSafety Settings:\n• Max messages/day: ${MAX_MESSAGES_PER_DAY}\n• Delay: ${MIN_DELAY_MINUTES}-${MAX_DELAY_MINUTES} minutes\n• Business hours: ${BUSINESS_HOURS_START} AM - ${BUSINESS_HOURS_END} PM ET\n• Check interval: ${CHECK_INTERVAL_MS / 1000} seconds`
+    `🚀 Campaign Worker Started: ${CAMPAIGN_NAME}`,
+    `Campaign worker has started successfully.\n\nCampaign: ${CAMPAIGN_NAME}\n\nSafety Settings:\n• Max messages/day: ${MAX_MESSAGES_PER_DAY}\n• Delay: ${MIN_DELAY_MINUTES}-${MAX_DELAY_MINUTES} minutes\n• Business hours: ${BUSINESS_HOURS_START} AM - ${BUSINESS_HOURS_END} PM ET\n• Check interval: ${CHECK_INTERVAL_MS / 1000} seconds`
   );
 
   // Get Unipile account
@@ -185,17 +208,35 @@ async function runWorker() {
   const unipileAccountId = linkedinAccount.id;
   console.log(`✅ LinkedIn account: ${linkedinAccount.name || linkedinAccount.id}\n`);
 
-  // Get campaign
+  // Get campaign by name (from command line or env var)
+  console.log(`📋 Looking for campaign: "${CAMPAIGN_NAME}"\n`);
+  
   const { data: campaign, error: campaignError } = await supabase
     .from('networking_campaign_batches')
     .select('*')
-    .eq('name', 'networking-holidays-2025')
+    .eq('name', CAMPAIGN_NAME)
     .single();
 
   if (campaignError || !campaign) {
-    console.error('❌ Campaign not found:', campaignError?.message);
+    console.error(`❌ Campaign not found: "${CAMPAIGN_NAME}"`);
+    console.error('   Error:', campaignError?.message);
+    console.error('\n   Available campaigns:');
+    
+    // List available campaigns to help the user
+    const { data: allCampaigns } = await supabase
+      .from('networking_campaign_batches')
+      .select('name, status');
+    
+    if (allCampaigns) {
+      allCampaigns.forEach(c => console.error(`   - ${c.name} (${c.status})`));
+    }
+    
     process.exit(1);
   }
+  
+  console.log(`✅ Found campaign: "${campaign.name}"`);
+  console.log(`   Status: ${campaign.status}`);
+  console.log(`   Sent: ${campaign.sent_count || 0}\n`);
 
   let sentToday = 0;
   let lastSendDate = new Date().toDateString();
@@ -416,6 +457,27 @@ async function runWorker() {
 
       console.log(`✅ No duplicate found - safe to send (no messages in this or other campaigns)`);
 
+      // ATOMIC LOCK: Mark as 'sending' to prevent race conditions
+      // This ensures only one process can send to this person
+      console.log(`🔒 Acquiring lock (setting status to 'sending')...`);
+      const { data: lockResult, error: lockError } = await supabase
+        .from('networking_outreach')
+        .update({
+          status: 'sending',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', outreach.id)
+        .eq('status', 'pending')  // Only if still pending (atomic check)
+        .select();
+
+      if (lockError || !lockResult || lockResult.length === 0) {
+        console.log(`⚠️  Failed to acquire lock - another process may have taken this message`);
+        console.log(`   Lock error: ${lockError?.message || 'No rows updated (status changed)'}`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continue;
+      }
+      console.log(`✅ Lock acquired - proceeding with send`);
+
       // Send message
       console.log(`📤 Sending to: ${connection.first_name} ${connection.last_name || ''}`);
       const sendResult = await sendMessage(outreach, connection, unipileAccountId);
@@ -429,7 +491,8 @@ async function runWorker() {
             status: 'sent',
             sent_at: new Date().toISOString()
           })
-          .eq('id', outreach.id);
+          .eq('id', outreach.id)
+          .eq('status', 'sending');  // Only update if we still hold the lock
 
         await supabase
           .from('networking_campaign_batches')

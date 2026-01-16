@@ -271,14 +271,17 @@ The cron job will automatically resume processing once reconnected.`,
     console.log(`✅ Using LinkedIn account: ${linkedinAccount.name || linkedinAccount.id} (${unipileAccountId})`);
 
     // Query due networking messages (only 1 per run for spacing)
-    console.log('🔍 Querying for due networking messages...');
+    // IMPORTANT: Only from ACTIVE campaigns (not paused, draft, or completed)
+    console.log('🔍 Querying for due networking messages from ACTIVE campaigns...');
     const { data: networkingMessages, error } = await supabase
       .from('networking_outreach')
       .select(`
         *,
-        linkedin_connections!inner(*)
+        linkedin_connections!inner(*),
+        networking_campaign_batches!inner(id, name, status)
       `)
       .eq('status', 'pending')
+      .eq('networking_campaign_batches.status', 'active')  // CRITICAL: Only active campaigns!
       .not('scheduled_at', 'is', null)
       .lte('scheduled_at', new Date().toISOString())
       .order('scheduled_at', { ascending: true })
@@ -297,6 +300,8 @@ The cron job will automatically resume processing once reconnected.`,
 
     console.log(`📤 Found ${networkingMessages.length} due networking message(s)`);
     console.log(`📝 Message ID: ${networkingMessages[0].id}`);
+    console.log(`📋 Campaign: ${networkingMessages[0].networking_campaign_batches?.name || 'Unknown'}`);
+    console.log(`   Campaign Status: ${networkingMessages[0].networking_campaign_batches?.status || 'Unknown'}`);
 
     // Only process first message (limit(1) ensures only 1 in array)
     const outreach = networkingMessages[0];
@@ -420,6 +425,26 @@ The cron job will automatically resume processing once reconnected.`,
 
     console.log(`✅ No duplicate found - safe to send (no messages in this or other campaigns)`);
 
+    // ATOMIC LOCK: Mark as 'sending' to prevent race conditions
+    // This ensures only one process can send to this person
+    console.log(`🔒 Acquiring lock (setting status to 'sending')...`);
+    const { data: lockResult, error: lockError } = await supabase
+      .from('networking_outreach')
+      .update({
+        status: 'sending',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', outreach.id)
+      .eq('status', 'pending')  // Only if still pending (atomic check)
+      .select();
+
+    if (lockError || !lockResult || lockResult.length === 0) {
+      console.log(`⚠️  Failed to acquire lock - another process may have taken this message`);
+      console.log(`   Lock error: ${lockError?.message || 'No rows updated (status changed)'}`);
+      return false; // Skip - another process is handling this
+    }
+    console.log(`✅ Lock acquired - proceeding with send`);
+
     // Send via Unipile
     console.log(`📤 Sending message via Unipile API...`);
     console.log(`   Account ID: ${unipileAccountId}`);
@@ -470,6 +495,7 @@ The cron job will automatically resume processing once reconnected.`,
       const unipileChatId = result.conversation_id || result.chat_id || result.conversationId;
 
       // Update status with Unipile tracking IDs for webhook matching
+      // Only update if we still hold the lock (status = 'sending')
       await supabase
         .from('networking_outreach')
         .update({
@@ -479,7 +505,8 @@ The cron job will automatically resume processing once reconnected.`,
           unipile_chat_id: unipileChatId || null,
           updated_at: new Date().toISOString()
         })
-        .eq('id', outreach.id);
+        .eq('id', outreach.id)
+        .eq('status', 'sending');  // Only update if we still hold the lock
 
       // Update campaign batch stats
       if (outreach.batch_id) {
@@ -511,14 +538,16 @@ The cron job will automatically resume processing once reconnected.`,
     } catch (error) {
       console.error(`❌ Failed to send networking message:`, error.message);
 
-      // Update status to failed
+      // Update status to failed (only if we still hold the lock)
       await supabase
         .from('networking_outreach')
         .update({
           status: 'failed',
-          skip_reason: error.message
+          skip_reason: error.message,
+          updated_at: new Date().toISOString()
         })
-        .eq('id', outreach.id);
+        .eq('id', outreach.id)
+        .eq('status', 'sending');  // Only update if we still hold the lock
 
       // Send failure notification
       await sendNetworkingNotification(outreach, connection, { success: false, error: error.message });
