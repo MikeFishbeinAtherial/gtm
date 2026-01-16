@@ -1247,10 +1247,22 @@ async function sendDigestEmail() {
   }
 
   try {
-    // Get all queued notifications
+    // Only include notifications since last digest
+    const { data: metadata } = await supabase
+      .from('notification_digest_metadata')
+      .select('last_digest_sent_at')
+      .eq('id', '00000000-0000-0000-0000-000000000001')
+      .single();
+
+    const lastDigestSentAt = metadata?.last_digest_sent_at
+      ? new Date(metadata.last_digest_sent_at).toISOString()
+      : new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // fallback: last 24h
+
+    // Get queued notifications since last digest
     const { data: notifications, error } = await supabase
       .from('notification_digest_queue')
       .select('*')
+      .gte('created_at', lastDigestSentAt)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -1355,7 +1367,7 @@ async function sendDigestEmail() {
     }
 
     body += '\n─'.repeat(60) + '\n';
-    body += 'This is a digest email sent at 7am, noon, 4pm, and 7pm ET.\n';
+    body += 'This is a digest email sent on weekdays at 9:30am, noon, and 6pm ET.\n';
     body += 'Individual notifications are batched to reduce email volume.\n';
 
     // Send digest email
@@ -1376,11 +1388,14 @@ async function sendDigestEmail() {
     if (response.ok) {
       console.log(`✅ Digest email sent with ${totalCount} notifications`);
       
-      // Clear the queue
-      await supabase
-        .from('notification_digest_queue')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+      // Clear only the notifications included in this digest
+      const idsToDelete = notifications.map(n => n.id).filter(Boolean);
+      if (idsToDelete.length > 0) {
+        await supabase
+          .from('notification_digest_queue')
+          .delete()
+          .in('id', idsToDelete);
+      }
 
       // Update last digest sent time
       await supabase
