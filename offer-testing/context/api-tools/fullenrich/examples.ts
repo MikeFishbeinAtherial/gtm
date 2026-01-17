@@ -221,7 +221,7 @@ export async function enrichLinkedInConnections(
   const enrichmentIds = []
 
   for (const batch of batches) {
-    const response = await fetch('https://app.fullenrich.com/api/v1/contact/enrich/bulk', {
+    const response: Response = await fetch('https://app.fullenrich.com/api/v1/contact/enrich/bulk', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.FULLENRICH_API_KEY}`,
