@@ -138,7 +138,7 @@ export class FullenrichClient {
       throw new Error('Maximum 100 contacts per enrichment request')
     }
 
-    const response = await this.request<{ enrichment_id?: string; id?: string }>('/contact/enrich/bulk', 'POST', request as Record<string, unknown>)
+    const response = await this.request<{ enrichment_id?: string; id?: string }>('/contact/enrich/bulk', 'POST', request as unknown as Record<string, unknown>)
     
     // Handle both 'enrichment_id' and 'id' response formats
     return {
