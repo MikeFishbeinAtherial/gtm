@@ -1,0 +1,10 @@
+{
+  "skills": {
+    "directory": "skills",
+    "enabled": true
+  },
+  "project": {
+    "name": "GTM Offer Testing",
+    "description": "AI-powered B2B outbound sales campaign testing system"
+  }
+}
