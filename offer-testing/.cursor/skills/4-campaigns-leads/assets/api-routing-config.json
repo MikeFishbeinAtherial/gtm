@@ -1,0 +1,43 @@
+{
+  "api_routing": {
+    "hiring_signals": {
+      "primary": "TheirStack",
+      "secondary": "Parallel",
+      "description": "Use TheirStack for job posting signals, Parallel for enrichment"
+    },
+    "tech_stack_signals": {
+      "primary": "Parallel",
+      "description": "Parallel has tech stack filters"
+    },
+    "funding_news_signals": {
+      "primary": "Exa",
+      "secondary": "Parallel",
+      "description": "Exa for AI-powered search, Parallel for enrichment"
+    },
+    "growth_signals": {
+      "primary": "Parallel",
+      "description": "Parallel tracks employee count trends"
+    },
+    "default": {
+      "primary": "Parallel",
+      "description": "ICP-only search when no specific signal"
+    }
+  },
+  "enrichment": {
+    "always_use": "Parallel",
+    "description": "All companies are enriched with Parallel regardless of discovery source"
+  },
+  "contacts": {
+    "always_use": "Parallel",
+    "description": "Contact discovery always uses Parallel people search"
+  },
+  "email": {
+    "options": ["Leadmagic", "FullEnrich"],
+    "default": "Leadmagic",
+    "description": "Leadmagic for instant, FullEnrich for bulk"
+  },
+  "status": {
+    "always_use": "Unipile",
+    "description": "LinkedIn connection status checks via Unipile"
+  }
+}

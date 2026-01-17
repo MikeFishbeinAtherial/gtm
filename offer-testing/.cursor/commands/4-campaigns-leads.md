@@ -4,6 +4,8 @@ Launch a campaign by finding companies and contacts that match your offer's ICP 
 
 **⚠️ This command spends API credits to find leads. Make sure your campaign plan is ready before running.**
 
+**📦 Note:** This command has been converted to a **Skill** with reusable scripts. See `.cursor/skills/4-campaigns-leads/` for the skill version. This markdown file is kept for reference and backward compatibility.
+
 ---
 
 ## What This Command Does
