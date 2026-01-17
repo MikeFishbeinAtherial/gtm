@@ -306,12 +306,20 @@ export class TheirStackClient {
       body: body ? JSON.stringify(body) : undefined,
     })
 
-    if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`TheirStack API error (${response.status}): ${error}`)
+    // TheirStack may return 402 (Payment Required) but still include partial results
+    // We'll parse the response even on 402 to get what we can
+    const data = await response.json()
+    
+    if (!response.ok && response.status !== 402) {
+      throw new Error(`TheirStack API error (${response.status}): ${JSON.stringify(data)}`)
+    }
+    
+    // If 402, log warning but return partial results
+    if (response.status === 402) {
+      console.warn(`⚠️ TheirStack returned 402 (insufficient credits) but provided partial results`)
     }
 
-    return response.json()
+    return data
   }
 
   /**
@@ -511,6 +519,90 @@ export class TheirStackClient {
       max_employee_count: options?.max_employee_count,
       limit: options?.limit || 25,
     })
+  }
+
+  /**
+   * Search for companies using the Company Search API.
+   * 
+   * This is more efficient than job search when you want companies directly.
+   * Returns companies that match filters, along with matching jobs/technologies.
+   * 
+   * Cost: 3 credits per company returned
+   * 
+   * @param params - Company search parameters
+   * @returns Company search response with companies and matching jobs
+   * 
+   * @example
+   * // Find finance companies hiring data engineers
+   * const companies = await client.searchCompanies({
+   *   job_filters: {
+   *     job_title_pattern_or: ['data engineer', 'data scientist'],
+   *     posted_at_max_age_days: 30
+   *   },
+   *   company_description_pattern_or: ['hedge fund', 'private equity'],
+   *   limit: 25
+   * })
+   */
+  async searchCompanies(params: {
+    // Pagination
+    page?: number
+    limit?: number
+    offset?: number
+    
+    // Company filters
+    company_name_or?: string[]
+    company_domain_or?: string[]
+    company_description_pattern_or?: string[]
+    company_description_pattern_not?: string[]
+    min_employee_count?: number
+    max_employee_count?: number
+    industry_id_or?: number[]
+    company_country_code_or?: string[]
+    
+    // Job filters (companies with jobs matching these)
+    job_filters?: {
+      job_title_pattern_or?: string[]
+      job_title_pattern_and?: string[]
+      job_description_pattern_or?: string[]
+      posted_at_max_age_days?: number
+      posted_at_gte?: string
+      posted_at_lte?: string
+    }
+    
+    // Tech filters (companies using these technologies)
+    tech_filters?: {
+      technology_slug_or?: string[]
+      confidence_or?: ('low' | 'medium' | 'high')[]
+    }
+    
+    include_total_results?: boolean
+    order_by?: Array<{ field: string; desc?: boolean }>
+  }): Promise<{
+    metadata: {
+      total_results?: number
+      total_companies?: number
+      truncated_companies?: number
+    }
+    data: Array<{
+      id: string
+      name: string
+      domain?: string
+      industry?: string
+      employee_count?: number
+      long_description?: string
+      seo_description?: string
+      jobs_found?: Array<{
+        id: number
+        job_title: string
+        date_posted?: string
+      }>
+      technologies_found?: Array<{
+        technology: { slug: string; name: string }
+        confidence: string
+      }>
+    }>
+  }> {
+    return this.request('/v1/companies/search', 'POST', params as any)
   }
 
   /**
