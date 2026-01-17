@@ -21,20 +21,23 @@ Quick reference for choosing the right API for each task in your workflow.
 | Find people by role/title | **Exa** | Natural language, LinkedIn | Parallel |
 | Find contacts at specific company | **Exa** | Targeted search | Parallel |
 | Get detailed contact data | **Parallel** | Comprehensive profiles | - |
-| Find email addresses | **Leadmagic** | Email verification included | Manual |
+| Find email addresses | **FullEnrich** or **Leadmagic** | Bulk enrichment (FullEnrich) or instant (Leadmagic) | Manual |
+| Enrich contacts at scale | **FullEnrich** | Bulk up to 100 contacts, async with webhooks | Leadmagic |
 | Verify email deliverability | **Leadmagic** | Purpose-built for emails | - |
 
 ## Research & Intelligence
 
 | Task | Best API | Why | Alternative |
 |------|----------|-----|-------------|
-| Company news and updates | **Exa** | Recent articles with summaries | Manual Google |
-| Industry trends | **Exa** | AI-powered research | Manual research |
-| Competitive intelligence | **Exa** | Similar company discovery | Manual |
+| Company news and updates | **Exa** or **Perplexity** | Recent articles with summaries | Manual Google |
+| Research company information | **Perplexity** | AI-powered web search with citations | Exa |
+| Research contact/person background | **Perplexity** | Current information about people | Exa |
+| Industry trends | **Exa** or **Perplexity** | AI-powered research | Manual research |
+| Competitive intelligence | **Exa** or **Perplexity** | Similar company discovery, competitor research | Manual |
 | Extract pricing/features from sites | **Firecrawl** | Structured extraction | Manual scraping |
 | Extract team info from websites | **Firecrawl** | Autonomous navigation | Manual research |
 | Competitive feature comparison | **Firecrawl** | Parallel multi-site extraction | Manual |
-| Pre-outreach company research | **Firecrawl** | Deep website analysis | Manual |
+| Pre-outreach company research | **Firecrawl** or **Perplexity** | Deep website analysis or web research | Manual |
 | Quantified company metrics | **Parallel** | Structured firmographic data | - |
 | Technology stack validation | **Sumble** | Tech usage + people counts | - |
 | Job posting signals | **Sumble Jobs API** | Hiring signals + tech filters | TheirStack |
@@ -58,16 +61,16 @@ Quick reference for choosing the right API for each task in your workflow.
 1. **Sumble Jobs API** - Find companies with SDR/BDR/AE job postings
 2. **Parallel** - Enrich with company size, revenue, employee count
 3. **Exa** - Find decision-makers (VP Sales, CRO) at those companies
-4. **Leadmagic** - Get email addresses
-5. **Exa** - Research company for personalization
+4. **FullEnrich** - Get email addresses (bulk enrichment)
+5. **Perplexity** - Research company and contacts for personalization
 6. **Unipile** - Send outreach
 
 **Why this order:**
 - Sumble gives the strongest signal (hiring = budget + urgent need)
 - Parallel adds firmographic validation
 - Exa finds the right people
-- Leadmagic gets contact info
-- Exa provides personalization context
+- FullEnrich gets contact info (bulk, async)
+- Perplexity provides current personalization context
 - Unipile handles delivery
 
 ### Scenario 2: "Find marketing agencies in healthcare"
@@ -76,8 +79,8 @@ Quick reference for choosing the right API for each task in your workflow.
 1. **Exa** - Find agencies specializing in healthcare
 2. **Parallel** - Enrich with size, revenue, employee count
 3. **Exa** - Find CMOs/Directors at target agencies
-4. **Leadmagic** - Get emails
-5. **Exa** - Research each agency (clients, case studies)
+4. **FullEnrich** - Get emails (bulk enrichment)
+5. **Perplexity** - Research each agency (clients, case studies, recent news)
 6. **Unipile** - Send personalized outreach
 
 **Why this order:**
@@ -158,10 +161,13 @@ Need to find something?
 ├─ People?
 │  ├─ By role/context? → Exa
 │  ├─ With detailed data? → Parallel
-│  └─ Email addresses? → Leadmagic
+│  ├─ Email addresses (bulk)? → FullEnrich
+│  └─ Email addresses (instant)? → Leadmagic
 │
 ├─ Research?
-│  ├─ News/trends? → Exa
+│  ├─ News/trends? → Exa or Perplexity
+│  ├─ Company information? → Perplexity
+│  ├─ Contact background? → Perplexity
 │  ├─ Company metrics? → Parallel
 │  ├─ Tech stack? → Sumble
 │  ├─ Job postings? → Sumble Jobs API
@@ -185,6 +191,8 @@ Need to find something?
 | API | Typical Cost | When Expensive | How to Optimize |
 |-----|--------------|----------------|-----------------|
 | **Exa** | $$ - Moderate | Content extraction | Use summaries vs full text |
+| **Perplexity** | $$ - Moderate | Per API call | Cache results, use for high-value research |
+| **FullEnrich** | $$ - Moderate | Per contact (1-10 credits) | Use webhooks, batch up to 100 |
 | **Firecrawl** | $$ - Moderate | Deep navigation, many sources | Provide URLs, set maxCredits |
 | **Parallel** | $$ - Moderate | Many lookups | Batch operations |
 | **TheirStack** | $ - Low | High volume | Filter carefully |
@@ -192,7 +200,7 @@ Need to find something?
 | **Leadmagic** | $ - Low | Verification | Only verify targets |
 | **Unipile** | $$$ - High | High volume | Respect rate limits |
 
-**General Rule:** Discovery (Exa, TheirStack) → Enrichment (Parallel, Sumble, Leadmagic, Firecrawl) → Action (Unipile)
+**General Rule:** Discovery (Exa, TheirStack) → Research (Perplexity) → Enrichment (Parallel, Sumble, FullEnrich, Leadmagic, Firecrawl) → Action (Unipile)
 
 Do cheap discovery first, enrich only qualified leads, act only on best matches.
 
@@ -209,9 +217,13 @@ Do cheap discovery first, enrich only qualified leads, act only on best matches.
 | Find companies like [example] | Exa (findsimilar) |
 | Validate tech stack at company | Sumble Enrichment API |
 | Find decision-makers | Exa or Parallel |
-| Find email addresses | Leadmagic |
-| Research company news | Exa |
-| Understand industry trends | Exa |
+| Find email addresses (bulk) | FullEnrich |
+| Find email addresses (instant) | Leadmagic |
+| Enrich contacts at scale | FullEnrich |
+| Research company information | Perplexity |
+| Research contact background | Perplexity |
+| Research company news | Exa or Perplexity |
+| Understand industry trends | Exa or Perplexity |
 | Extract pricing from websites | Firecrawl |
 | Extract features from websites | Firecrawl |
 | Extract team info from websites | Firecrawl |
@@ -254,11 +266,27 @@ Do cheap discovery first, enrich only qualified leads, act only on best matches.
 - People using specific tech
 - Hiring trends
 
+### Perplexity 🔍
+**Strength:** AI-powered web research
+- Real-time web search with citations
+- Company and contact research
+- Current information and trends
+- Competitive intelligence
+
+### FullEnrich 📧
+**Strength:** Contact enrichment at scale
+- Bulk email finding (up to 100 contacts)
+- Mobile phone numbers
+- Personal emails
+- Asynchronous with webhooks
+- LinkedIn URL improves results
+
 ### Leadmagic 📧
-**Strength:** Email finding
+**Strength:** Email finding (instant)
 - Find work emails
 - Email verification
 - High deliverability
+- Synchronous lookups
 
 ### Unipile 📤
 **Strength:** Outreach delivery

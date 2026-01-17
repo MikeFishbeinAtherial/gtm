@@ -195,9 +195,9 @@ See `context/sales-job-titles.ts` for the complete list.
 - `scripts/add-sumble-insights-columns.sql` - Database migration
 - `context/sales-job-titles.ts` - Sales job titles helper
 - `context/api-tools/README.md` - API tools overview
-- `context/api-tools/sumble/README.md` - Sumble guide
+- `context/api-tools/sumble/sumble-tool-guide.md` - Sumble guide
 - `context/api-tools/sumble/examples.ts` - Sumble examples
-- `context/api-tools/unipile/README.md` - Unipile guide
+- `context/api-tools/unipile/unipile-tool-guide.md` - Unipile guide
 - `context/api-tools/unipile/examples.ts` - Unipile examples
 - `docs/2025-campaign-updates.md` - This file
 

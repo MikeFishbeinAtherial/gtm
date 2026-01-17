@@ -5,20 +5,20 @@ This directory contains detailed documentation for each API tool used in the Off
 ## Structure
 
 Each API tool has its own directory with:
-- `README.md` - Overview, when to use, setup
+- `{tool-name}-tool-guide.md` - Overview, when to use, setup
 - `examples.ts` - Code examples
 - `setup.md` - Setup and configuration (if needed)
 - Additional guides as needed (e.g., `hiring-signals.md`, `tech-validation.md`)
 
 ## Available Tools
 
-### [Sumble](./sumble/)
+### [Sumble](./sumble/sumble-tool-guide.md)
 **Hiring signals and technology intelligence**
 - Find companies hiring for specific roles
 - Validate technology stacks
 - Get job posting details for personalization
 
-### [Unipile](./unipile/)
+### [Unipile](./unipile/unipile-tool-guide.md)
 **LinkedIn and email outreach**
 - Send LinkedIn messages and connection requests
 - Manage inbox and conversations
@@ -41,6 +41,21 @@ Each API tool has its own directory with:
 - Discover companies by qualitative criteria
 - Research industry trends
 - Find decision-makers with context
+
+### [Perplexity](./perplexity/perplexity-tool-guide.md)
+**AI-powered web search and research**
+- Real-time web search with AI understanding
+- Company and contact research
+- Industry trends and competitive intelligence
+- General research with citations
+
+### [FullEnrich](./fullenrich/fullenrich-tool-guide.md)
+**Contact enrichment**
+- Find work email addresses (1 credit)
+- Get mobile phone numbers (10 credits)
+- Find personal emails (3 credits)
+- Bulk enrichment (up to 100 contacts)
+- Asynchronous with webhooks
 
 ### [Firecrawl](./firecrawl/)
 **Web scraping and data extraction**
@@ -69,9 +84,11 @@ See `../api-guides/` for quick reference cards and comparison guides.
 - **Find companies hiring sales** → Sumble or TheirStack
 - **Send LinkedIn messages** → Unipile
 - **Find companies by size/revenue** → Parallel
-- **Research company context** → Exa
+- **Research company context** → Exa or Perplexity
+- **Research contacts/people** → Perplexity
 - **Extract website data** → Firecrawl
-- **Find email addresses** → Leadmagic
+- **Find email addresses** → FullEnrich or Leadmagic
+- **Enrich contacts at scale** → FullEnrich
 - **Validate tech stack** → Sumble
 
 See `../api-guides/README.md` for detailed decision trees.

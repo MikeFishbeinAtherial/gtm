@@ -74,7 +74,7 @@ We build custom AI role play trainers where reps do practice calls with AI prosp
 
 One recent client is already seeing an 18% improvement in cold call conversion rates after just a few weeks.
 
-Let me know if you know someone who'd find this useful. Happy to set up free practice calls with their ICP so they can see real the calls are. Thanks and let me know if there's any way I can help you!`,
+Let me know if you know someone who'd find this useful. Happy to set up free practice calls with their ICP so they can see how real the calls are. Thanks and let me know if there's any way I can help you!`,
 
   `Hey {{firstname}}, hope your 2026 is going great! 
 
