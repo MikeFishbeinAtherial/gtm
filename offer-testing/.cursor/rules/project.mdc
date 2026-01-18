@@ -107,6 +107,12 @@ STEP 2: Get Companies
 ├─ TheirStack/Exa results → Extract domains
 └─ Enrich with Parallel → Verify ICP match
 ↓
+STEP 2.5: Store API Results (CRITICAL)
+├─ Save run IDs immediately (for async APIs)
+├─ Store raw responses in tool-specific tables or source_raw
+├─ Log to tool_usage table (automatic via hook)
+└─ Save JSON backup files (even in dry-run mode)
+↓
 STEP 3: Find Contacts
 └─ Use Parallel (people search by title)
 ↓
@@ -114,9 +120,11 @@ STEP 4: Enrich Contacts
 └─ Use Leadmagic (find/verify emails if needed)
 ↓
 STEP 5: Save to Supabase
-└─ Companies → companies table
-└─ Contacts → contacts table
+└─ Companies → companies table (with source_raw)
+└─ Contacts → contacts table (with source_raw)
 ```
+
+**API Results Storage:** Always store run IDs, raw responses, and backups. See @file docs/api-tool-results-storage.md
 
 **Quick Reference:**
 - @file context/api-guides/parallel-quick-reference.md

@@ -21,13 +21,18 @@
  */
 
 import * as dotenv from 'dotenv'
+
+// Load env FIRST before importing clients
+dotenv.config({ path: '.env.local' })
+dotenv.config()
+
 import { createClient } from '@supabase/supabase-js'
-import { parallel } from '../src/lib/clients/parallel.ts'
+import { ParallelClient } from '../src/lib/clients/parallel.ts'
 import * as fs from 'fs'
 import * as path from 'path'
 
-dotenv.config({ path: '.env.local' })
-dotenv.config()
+// Create client instance after env is loaded
+const parallel = new ParallelClient(process.env.PARALLEL_API_KEY)
 
 // -------------------------
 // Args (simple parsing)
@@ -47,7 +52,9 @@ function getBoolArg(name: string, defaultValue: boolean): boolean {
 const TARGET_TOTAL = Number(getArg('target-total', '1000'))
 const BATCH = Number(getArg('batch', '200')) // how many NEW companies to try to add per run
 const DRY_RUN = getBoolArg('dry-run', false)
-const GENERATOR = (getArg('generator', 'core') as 'base' | 'core' | 'pro') || 'core'
+// Default to 'base' generator - cheaper, gets more companies for the same budget
+// Base: $0.06/1000 companies, Core: $0.23/1000, Pro: $1.43/1000
+const GENERATOR = (getArg('generator', 'base') as 'base' | 'core' | 'pro') || 'base'
 
 // -------------------------
 // Env + Supabase
@@ -279,7 +286,18 @@ async function queryMaturityHedgeFunds(offerId: string, campaignId: string): Pro
 
   const runId = findall.findall_id || findall.run_id
   console.log(`   ⏳ FindAll run created: ${runId}`)
-  console.log(`   ⏳ Waiting for results (typically 15-30 seconds)...`)
+  
+  // CRITICAL: Save run ID to JSON file IMMEDIATELY (before polling, before database)
+  // This ensures we can recover data even if script times out
+  const runIdFile = path.join(process.cwd(), `parallel-run-ids-${Date.now()}-${runId}.json`)
+  fs.writeFileSync(runIdFile, JSON.stringify({
+    run_id: runId,
+    timestamp: new Date().toISOString(),
+    query_name: queryName,
+    objective: objective,
+    request_params: findall,
+  }, null, 2))
+  console.log(`   💾 Run ID saved to: ${runIdFile}`)
   
   // Save run record (pending status)
   const { data: runRecord } = await supabase
@@ -299,10 +317,23 @@ async function queryMaturityHedgeFunds(offerId: string, campaignId: string): Pro
     } as any)
     .select('id')
     .maybeSingle()
+  
+  console.log(`   ⏳ Waiting for results (typically 15-30 seconds)...`)
 
   const result = await waitForFindAllResult(runId)
   const items = result.output?.items || result.candidates || []
   const durationSeconds = Math.floor((Date.now() - startTime) / 1000)
+  
+  // CRITICAL: Save results to JSON file IMMEDIATELY (before processing, before database)
+  const resultsFile = path.join(process.cwd(), `parallel-results-${runId}-${Date.now()}.json`)
+  fs.writeFileSync(resultsFile, JSON.stringify({
+    run_id: runId,
+    timestamp: new Date().toISOString(),
+    query_name: queryName,
+    result: result,
+    items_count: items.length,
+  }, null, 2))
+  console.log(`   💾 Results saved to: ${resultsFile}`)
   
   // Calculate estimated cost (per 1000 companies)
   const costPer1000 = GENERATOR === 'base' ? 0.06 : GENERATOR === 'core' ? 0.23 : 1.43
@@ -367,7 +398,17 @@ async function queryMaturityPEFirms(offerId: string, campaignId: string): Promis
 
   const runId = findall.findall_id || findall.run_id
   console.log(`   ⏳ FindAll run created: ${runId}`)
-  console.log(`   ⏳ Waiting for results (typically 15-30 seconds)...`)
+  
+  // CRITICAL: Save run ID to JSON file IMMEDIATELY (before polling, before database)
+  const runIdFile = path.join(process.cwd(), `parallel-run-ids-${Date.now()}-${runId}.json`)
+  fs.writeFileSync(runIdFile, JSON.stringify({
+    run_id: runId,
+    timestamp: new Date().toISOString(),
+    query_name: queryName,
+    objective: objective,
+    request_params: findall,
+  }, null, 2))
+  console.log(`   💾 Run ID saved to: ${runIdFile}`)
   
   const { data: runRecord } = await supabase
     .from('parallel_findall_runs')
@@ -386,10 +427,23 @@ async function queryMaturityPEFirms(offerId: string, campaignId: string): Promis
     } as any)
     .select('id')
     .maybeSingle()
+  
+  console.log(`   ⏳ Waiting for results (typically 15-30 seconds)...`)
 
   const result = await waitForFindAllResult(runId)
   const items = result.output?.items || result.candidates || []
   const durationSeconds = Math.floor((Date.now() - startTime) / 1000)
+  
+  // CRITICAL: Save results to JSON file IMMEDIATELY (before processing, before database)
+  const resultsFile = path.join(process.cwd(), `parallel-results-${runId}-${Date.now()}.json`)
+  fs.writeFileSync(resultsFile, JSON.stringify({
+    run_id: runId,
+    timestamp: new Date().toISOString(),
+    query_name: queryName,
+    result: result,
+    items_count: items.length,
+  }, null, 2))
+  console.log(`   💾 Results saved to: ${resultsFile}`)
   
   const costPer1000 = GENERATOR === 'base' ? 0.06 : GENERATOR === 'core' ? 0.23 : 1.43
   const estimatedCost = (items.length / 1000) * costPer1000

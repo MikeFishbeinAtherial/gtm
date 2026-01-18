@@ -263,6 +263,52 @@ for (const company of enrichedCompanies) {
    ✓ Average: 2.1 contacts per company
 ```
 
+### Step 5.5: Store API Results (CRITICAL)
+
+**Before processing results, save run IDs and raw responses:**
+
+Reference: @file docs/api-tool-results-storage.md
+
+```typescript
+// For async APIs (Parallel FindAll, Task API):
+// 1. Save run ID immediately (before polling)
+const findall = await parallel.findAll(...)
+const runId = findall.findall_id
+
+await supabase.from('parallel_findall_runs').insert({
+  findall_run_id: runId,
+  status: 'pending',
+  offer_id: offerId,
+  campaign_id: campaignId,
+  // ... request details
+})
+
+// 2. Poll for results
+const result = await waitForFindAllResult(runId)
+
+// 3. Update with full response
+await supabase.from('parallel_findall_runs')
+  .update({
+    status: 'completed',
+    raw_response: result,  // Full API response
+    items_count: result.output?.items?.length || 0
+  })
+  .eq('findall_run_id', runId)
+
+// 4. Save JSON backup (even in dry-run mode)
+fs.writeFileSync(
+  `parallel-results-${runId}.json`,
+  JSON.stringify(result, null, 2)
+)
+
+// For sync APIs (TheirStack, Exa):
+// 1. Log automatically (via tool-usage-logger hook)
+// 2. Store raw response in source_raw field
+// 3. Save JSON backup
+```
+
+**Why:** If scripts fail/timeout, you can recover data using run IDs.
+
 ### Step 6: Check Status (Unipile)
 
 **Check if we've already contacted these people:**

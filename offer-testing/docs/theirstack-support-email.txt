@@ -1,0 +1,54 @@
+Subject: Need Company Data from API Calls - Credits Used But Data Not Saved
+
+Hi TheirStack Support,
+
+I'm writing to request help recovering company data from API calls I made recently. Here's what happened:
+
+WHAT HAPPENED:
+I used your Company Search API (/v1/companies/search) to find finance companies matching specific hiring signals. The API calls were successful (credits were deducted from my account), but my script encountered an error before I could save the returned data to my database.
+
+DETAILS:
+- API Used: Company Search API (/v1/companies/search)
+- Date Range: January 15-18, 2026 (approximately)
+- Credits Used: All available credits (visible in my dashboard)
+- Method: POST requests
+
+Search Parameters:
+- Job title patterns: ["Head of Data", "Director of Data", "VP Data", "Chief Data Officer", "CDO", "Head of AI", "AI Engineer", "Machine Learning", "ML Engineer", "Data Scientist", "Data Engineer", "Quant", "Quantitative Research", "Automation", "Platform Engineer"]
+- Job description patterns: ["Snowflake", "Databricks", "dbt", "BigQuery", "Redshift", "Airflow", "Kubernetes", "LLM", "large language model", "machine learning", "NLP", "vector database"]
+- Company description patterns: ["hedge fund", "private equity", "asset management", "investment management", "alternative investment"]
+- Limit: 25 companies per page
+- Multiple pages requested (0-10)
+
+THE PROBLEM:
+1. My script made multiple API calls and received responses with company data
+2. The script encountered an error/timeout before saving the data to my database
+3. No data was saved - I can see credits were used but I don't have the company data that was returned
+4. The script was supposed to save results to JSON files, but those weren't created due to the script failure
+
+WHAT I NEED:
+I need the company data that was returned in the API responses:
+- Company names and domains
+- Company descriptions
+- Job postings found (if included in response)
+- Technologies found (if included in response)
+- Any other company data that was returned
+
+QUESTIONS:
+1. Can you provide the raw API responses from my Company Search API calls from January 15-18, 2026?
+2. Do you have API logs that show the exact responses returned?
+3. Is there a way to export my API usage history with the actual data returned?
+4. Can you provide request/response logs for these specific API calls?
+
+WHY THIS MATTERS:
+I spent credits on these API calls expecting to receive company data. While the API calls succeeded (credits were deducted), I don't have the data that was returned. This is critical for my lead generation workflow.
+
+I've already checked my database (no TheirStack companies saved) and looked for JSON backup files (none found). I've also updated my scripts to prevent this in the future with immediate JSON backups.
+
+If you can provide the API response data, I can import it into my database and continue with my lead generation workflow.
+
+Thank you for your help!
+
+---
+Account Email: [your email]
+API Key: [if needed for verification]

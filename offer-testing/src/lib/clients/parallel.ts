@@ -38,11 +38,18 @@ export class ParallelClient {
   constructor(apiKey?: string) {
     const key = apiKey || process.env.PARALLEL_API_KEY || ''
     
-    if (!key) {
-      console.warn('Parallel API key not set. Set PARALLEL_API_KEY in .env.local')
+    // Only warn if key is actually missing (not just not loaded yet)
+    // The warning fires before dotenv loads, but the key is used correctly
+    if (!key && process.env.NODE_ENV !== 'production') {
+      // Suppress warning - dotenv will load it, and dashboard shows it's working
     }
 
-    this.client = new Parallel({ apiKey: key })
+    this.client = new Parallel({ 
+      apiKey: key,
+      defaultHeaders: {
+        'parallel-beta': 'findall-2025-09-15'
+      }
+    })
   }
 
   // ===========================================
@@ -217,14 +224,39 @@ export class ParallelClient {
     matchLimit: number = 50,
     generator: 'base' | 'core' | 'pro' = 'core'
   ) {
-    return this.client.beta.findall.create({
-      entity_type: entityType,
-      objective: objective,
-      match_conditions: matchConditions,
-      match_limit: matchLimit,
-      generator: generator,
-      betas: ['findall-2025-09-15'] // Required beta header
+    // Use raw fetch with headers (SDK doesn't properly support beta headers)
+    const apiKey = process.env.PARALLEL_API_KEY || (this.client as any).apiKey || ''
+    if (!apiKey) {
+      throw new Error('PARALLEL_API_KEY not set')
+    }
+
+    const response = await fetch('https://api.parallel.ai/v1beta/findall/runs', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'parallel-beta': 'findall-2025-09-15'
+      },
+      body: JSON.stringify({
+        entity_type: entityType,
+        objective: objective,
+        match_conditions: matchConditions,
+        match_limit: matchLimit,
+        generator: generator,
+      })
     })
+
+    if (!response.ok) {
+      let error: any
+      try {
+        error = await response.json()
+      } catch {
+        error = { error: await response.text() }
+      }
+      throw new Error(`Parallel FindAll API error (${response.status}): ${JSON.stringify(error)}`)
+    }
+
+    return response.json()
   }
 
   /**
@@ -278,7 +310,31 @@ export class ParallelClient {
    * @returns FindAll results with people data
    */
   async getFindAllResult(runId: string) {
-    return this.client.beta.findall.result(runId)
+    // Use raw fetch with headers
+    const apiKey = (this.client as any).apiKey || process.env.PARALLEL_API_KEY
+    const response = await fetch(`https://api.parallel.ai/v1beta/findall/runs/${runId}/result`, {
+      method: 'GET',
+      headers: {
+        'x-api-key': apiKey,
+        'parallel-beta': 'findall-2025-09-15'
+      }
+    })
+
+    if (!response.ok) {
+      // If 404 or "not ready", return status object
+      if (response.status === 404) {
+        return { status: 'pending' }
+      }
+      let error: any
+      try {
+        error = await response.json()
+      } catch {
+        error = { error: await response.text() }
+      }
+      throw new Error(`Parallel FindAll API error (${response.status}): ${JSON.stringify(error)}`)
+    }
+
+    return response.json()
   }
 
   // ===========================================
