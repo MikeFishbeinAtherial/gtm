@@ -1166,7 +1166,7 @@ This email confirms the cron job ran successfully.
   }
 }
 
-// Check if it's time to send digest email (9:30am, noon, 6pm ET on weekdays)
+// Check if it's time to send digest email (every 3 hours: 9am, 12pm, 3pm, 6pm, 9pm ET on weekdays)
 async function shouldSendDigest() {
   try {
     // Get current time in ET
@@ -1181,11 +1181,13 @@ async function shouldSendDigest() {
       return false;
     }
     
-    // Define digest slots (hour + minute)
+    // Define digest slots (every 3 hours: 9am, 12pm, 3pm, 6pm, 9pm ET)
     const digestSlots = [
-      { hour: 9, minute: 30 },
+      { hour: 9, minute: 0 },
       { hour: 12, minute: 0 },
-      { hour: 18, minute: 0 }
+      { hour: 15, minute: 0 },  // 3pm ET
+      { hour: 18, minute: 0 },
+      { hour: 21, minute: 0 }
     ];
 
     // Send within 5-minute window of each slot
@@ -1213,7 +1215,7 @@ async function shouldSendDigest() {
         .insert({
           id: '00000000-0000-0000-0000-000000000001',
           last_digest_sent_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 24 hours ago
-          digest_interval_hours: 0 // Not used anymore, but keep for compatibility
+          digest_interval_hours: 3 // Updated to 3 hours
         });
       return true; // Send first digest
     }
@@ -1287,14 +1289,63 @@ async function sendDigestEmail() {
     const failedCount = networkingFailed.length + messageFailed.length;
     const errorCount = unipileErrors.length;
 
+    // Get daily stats (messages sent today, remaining, last scheduled)
+    const nowInTz = getNowInTimeZone();
+    const { startUtc, endUtc } = getDayBoundsUtc(nowInTz);
+    
+    // Count messages sent today
+    const { count: sentToday, error: sentTodayError } = await supabase
+      .from('networking_outreach')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'sent')
+      .gte('sent_at', startUtc.toISOString())
+      .lt('sent_at', endUtc.toISOString());
+    
+    // Count pending messages scheduled for today
+    const { count: pendingToday, error: pendingTodayError } = await supabase
+      .from('networking_outreach')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending')
+      .not('scheduled_at', 'is', null)
+      .gte('scheduled_at', startUtc.toISOString())
+      .lt('scheduled_at', endUtc.toISOString());
+    
+    // Get last scheduled message time today
+    const { data: lastScheduled, error: lastScheduledError } = await supabase
+      .from('networking_outreach')
+      .select('scheduled_at')
+      .eq('status', 'pending')
+      .not('scheduled_at', 'is', null)
+      .gte('scheduled_at', startUtc.toISOString())
+      .lt('scheduled_at', endUtc.toISOString())
+      .order('scheduled_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
+    const lastMessageTime = lastScheduled?.scheduled_at 
+      ? new Date(lastScheduled.scheduled_at).toLocaleString('en-US', { 
+          timeZone: 'America/New_York', 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        }) + ' ET'
+      : 'No more messages scheduled today';
+
     // Build digest email body
     const now = new Date();
     const generatedTimeET = now.toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'short', timeStyle: 'short' });
     
     let body = `📊 Message Digest Report\n`;
-    body += `⏰ Period: Since last digest\n`;
+    body += `⏰ Period: Since last digest (every 3 hours)\n`;
     body += `📅 Generated: ${generatedTimeET} ET\n\n`;
-    body += `📈 Summary:\n`;
+    
+    // Daily stats section
+    body += `📈 Today's Progress (${nowInTz.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}):\n`;
+    body += `• Messages sent today: ${sentToday || 0}\n`;
+    body += `• Messages remaining today: ${pendingToday || 0}\n`;
+    body += `• Last message scheduled: ${lastMessageTime}\n\n`;
+    
+    body += `📊 This Digest Period:\n`;
     body += `• Total notifications: ${totalCount}\n`;
     body += `• ✅ Successful sends: ${successCount}\n`;
     body += `• ❌ Failed sends: ${failedCount}\n`;
@@ -1367,7 +1418,7 @@ async function sendDigestEmail() {
     }
 
     body += '\n─'.repeat(60) + '\n';
-    body += 'This is a digest email sent on weekdays at 9:30am, noon, and 6pm ET.\n';
+    body += 'This is a digest email sent every 3 hours on weekdays (9am, 12pm, 3pm, 6pm, 9pm ET).\n';
     body += 'Individual notifications are batched to reduce email volume.\n';
 
     // Send digest email
@@ -1436,7 +1487,7 @@ async function main() {
     await processDueMessages();
     console.log('✅ Processing complete');
     
-    // Check if it's time to send digest email (9:30am, noon, 6pm ET on weekdays)
+    // Check if it's time to send digest email (every 3 hours: 9am, 12pm, 3pm, 6pm, 9pm ET on weekdays)
     if (await shouldSendDigest()) {
       console.log('📧 Time to send digest email...');
       await sendDigestEmail();
@@ -1447,18 +1498,20 @@ async function main() {
       const etHour = etTime.getHours();
       const etMinute = etTime.getMinutes();
       
-      // Find next digest time: 9:30am, 12:00pm, 6:00pm ET (weekdays)
+      // Find next digest time: 9am, 12pm, 3pm, 6pm, 9pm ET (weekdays, every 3 hours)
       const digestSlots = [
-        { hour: 9, minute: 30 },
+        { hour: 9, minute: 0 },
         { hour: 12, minute: 0 },
-        { hour: 18, minute: 0 }
+        { hour: 15, minute: 0 },  // 3pm ET
+        { hour: 18, minute: 0 },
+        { hour: 21, minute: 0 }
       ];
 
       const nowMinutes = etHour * 60 + etMinute;
       let next = digestSlots.find(s => (s.hour * 60 + s.minute) > nowMinutes);
 
       if (!next) {
-        // Next is tomorrow at 9:30am
+        // Next is tomorrow at 9am
         next = digestSlots[0];
         etTime.setDate(etTime.getDate() + 1);
       }

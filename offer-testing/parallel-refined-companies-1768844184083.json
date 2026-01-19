@@ -1,0 +1,172 @@
+{
+  "timestamp": "2026-01-19T17:36:24.083Z",
+  "total_found": 1,
+  "total_candidates": 2,
+  "queries_run": 4,
+  "generator": "core",
+  "estimated_cost": 6.3,
+  "companies": [
+    {
+      "name": "Ronin Equity Partners",
+      "domain": "roninequitypartners.com",
+      "url": "https://www.roninequitypartners.com/",
+      "description": "Ronin Equity Partners is a New York‑based private equity firm that focuses on control equity investments in industrial and consumer sectors. The firm reports having deployed over $300 million of equity capital, indicating a mid‑market size (approximately $100 M–$2 B AUM). Its website and LinkedIn page show a range of open positions, including corporate development and analyst roles, suggesting active hiring for deal‑sourcing‑related functions.",
+      "match_status": "matched",
+      "output": {
+        "east_coast_location": {
+          "type": "match_condition",
+          "value": "New York, NY, US",
+          "is_matched": true
+        },
+        "hiring_deal_sourcing": {
+          "type": "match_condition",
+          "value": "Vice President Corporate Development; Private Equity Associate; Chief of Staff; Analyst; Strategy Analyst; Financial Analyst; Investor Relations Associate",
+          "is_matched": true
+        },
+        "mid_market_size": {
+          "type": "match_condition",
+          "value": "employee count: NA; AUM: $300M+; mid-market term: yes",
+          "is_matched": true
+        },
+        "pe_firm_type": {
+          "type": "match_condition",
+          "value": "private equity",
+          "is_matched": true
+        }
+      },
+      "basis": [
+        {
+          "field": "east_coast_location",
+          "citations": [
+            {
+              "title": "Fetched web page",
+              "url": "https://www.roninequitypartners.com/",
+              "excerpts": [
+                "400 5th Avenue, Floor 54\nNew York, NY 10018"
+              ]
+            }
+          ],
+          "reasoning": "The website address excerpt lists \"New York, NY 10018\", which maps to the required format \"New York, NY, US\" and confirms an East Coast headquarters.",
+          "confidence": "high"
+        },
+        {
+          "field": "hiring_deal_sourcing",
+          "citations": [],
+          "reasoning": "The LinkedIn job listings excerpt shows multiple titles related to corporate development and analyst positions, which fall under deal‑sourcing or business‑development functions, and the scrape date is within the past 90 days.",
+          "confidence": "high"
+        },
+        {
+          "field": "mid_market_size",
+          "citations": [
+            {
+              "title": "Fetched web page",
+              "url": "https://www.roninequitypartners.com/",
+              "excerpts": [
+                "300M+**\nEquity Capital Deploye",
+                "400 5th Avenue, Floor 54\nNew York, NY 10018",
+                "Ronin Equity Partners makes control equity investments in the Industrial and Consumer sectors."
+              ]
+            }
+          ],
+          "reasoning": "The website excerpt states \"$300M+ Equity Capital Deployed\", indicating assets under management within the $100M‑$2B mid‑market range. No employee count is provided, so it is set to NA. The description contains the phrase \"mid‑market\" and the website lists the AUM, satisfying the mid‑market criteria.",
+          "confidence": "low"
+        },
+        {
+          "field": "pe_firm_type",
+          "citations": [
+            {
+              "title": "Fetched web page",
+              "url": "https://www.roninequitypartners.com/",
+              "excerpts": [
+                "Ronin Equity Partners makes control equity investments in the Industrial and Consumer sectors."
+              ]
+            }
+          ],
+          "reasoning": "The website excerpt says the firm \"makes control equity investments\", which characterizes it as a private equity (buyout) firm. No indications of venture capital, hedge fund, or banking activities are present.",
+          "confidence": "high"
+        }
+      ],
+      "raw_data": {
+        "candidate_id": "candidate_e3c593f9-9e0a-4296-9673-f65f0c35275f",
+        "name": "Ronin Equity Partners",
+        "url": "https://www.roninequitypartners.com/",
+        "description": "Ronin Equity Partners is a New York‑based private equity firm that focuses on control equity investments in industrial and consumer sectors. The firm reports having deployed over $300 million of equity capital, indicating a mid‑market size (approximately $100 M–$2 B AUM). Its website and LinkedIn page show a range of open positions, including corporate development and analyst roles, suggesting active hiring for deal‑sourcing‑related functions.",
+        "match_status": "matched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY, US",
+            "is_matched": true
+          },
+          "hiring_deal_sourcing": {
+            "type": "match_condition",
+            "value": "Vice President Corporate Development; Private Equity Associate; Chief of Staff; Analyst; Strategy Analyst; Financial Analyst; Investor Relations Associate",
+            "is_matched": true
+          },
+          "mid_market_size": {
+            "type": "match_condition",
+            "value": "employee count: NA; AUM: $300M+; mid-market term: yes",
+            "is_matched": true
+          },
+          "pe_firm_type": {
+            "type": "match_condition",
+            "value": "private equity",
+            "is_matched": true
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Fetched web page",
+                "url": "https://www.roninequitypartners.com/",
+                "excerpts": [
+                  "400 5th Avenue, Floor 54\nNew York, NY 10018"
+                ]
+              }
+            ],
+            "reasoning": "The website address excerpt lists \"New York, NY 10018\", which maps to the required format \"New York, NY, US\" and confirms an East Coast headquarters.",
+            "confidence": "high"
+          },
+          {
+            "field": "hiring_deal_sourcing",
+            "citations": [],
+            "reasoning": "The LinkedIn job listings excerpt shows multiple titles related to corporate development and analyst positions, which fall under deal‑sourcing or business‑development functions, and the scrape date is within the past 90 days.",
+            "confidence": "high"
+          },
+          {
+            "field": "mid_market_size",
+            "citations": [
+              {
+                "title": "Fetched web page",
+                "url": "https://www.roninequitypartners.com/",
+                "excerpts": [
+                  "300M+**\nEquity Capital Deploye",
+                  "400 5th Avenue, Floor 54\nNew York, NY 10018",
+                  "Ronin Equity Partners makes control equity investments in the Industrial and Consumer sectors."
+                ]
+              }
+            ],
+            "reasoning": "The website excerpt states \"$300M+ Equity Capital Deployed\", indicating assets under management within the $100M‑$2B mid‑market range. No employee count is provided, so it is set to NA. The description contains the phrase \"mid‑market\" and the website lists the AUM, satisfying the mid‑market criteria.",
+            "confidence": "low"
+          },
+          {
+            "field": "pe_firm_type",
+            "citations": [
+              {
+                "title": "Fetched web page",
+                "url": "https://www.roninequitypartners.com/",
+                "excerpts": [
+                  "Ronin Equity Partners makes control equity investments in the Industrial and Consumer sectors."
+                ]
+              }
+            ],
+            "reasoning": "The website excerpt says the firm \"makes control equity investments\", which characterizes it as a private equity (buyout) firm. No indications of venture capital, hedge fund, or banking activities are present.",
+            "confidence": "high"
+          }
+        ]
+      }
+    }
+  ]
+}

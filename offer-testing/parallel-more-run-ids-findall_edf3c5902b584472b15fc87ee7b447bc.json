@@ -1,0 +1,17 @@
+{
+  "run_id": "findall_edf3c5902b584472b15fc87ee7b447bc",
+  "query_name": "hedge_funds_broad",
+  "objective": "Find all hedge funds and alternative investment firms on the East Coast of the United States (ideally New York or Pennsylvania)",
+  "match_conditions": [
+    {
+      "name": "hedge_fund_type",
+      "description": "Company must be a hedge fund, alternative investment fund, or investment management firm. Look for keywords: 'hedge fund', 'alternative investment', 'investment management'. Exclude banks, credit unions, insurance companies, venture capital firms, and private equity firms."
+    },
+    {
+      "name": "east_coast_location",
+      "description": "Company headquarters must be on the East Coast of the United States. Prioritize companies in New York or Pennsylvania, but also include other East Coast states: New York, Pennsylvania, New Jersey, Massachusetts, Connecticut, Maryland, Virginia, North Carolina, South Carolina, Georgia, Florida."
+    }
+  ],
+  "generator": "core",
+  "match_limit": 100
+}

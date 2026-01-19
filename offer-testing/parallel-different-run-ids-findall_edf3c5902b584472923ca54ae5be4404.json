@@ -1,0 +1,15 @@
+{
+  "run_id": "findall_edf3c5902b584472923ca54ae5be4404",
+  "query_name": "family_offices_fund_of_funds",
+  "objective": "Find all family offices and fund of funds (FoF) investment firms in the United States",
+  "match_conditions": [
+    {
+      "name": "family_office_or_fof_type",
+      "description": "Company must be a family office, fund of funds, or multi-manager investment firm. Look for keywords: 'family office', 'fund of funds', 'FoF', 'multi-manager', 'investment office'. Exclude single-strategy funds and individual investment advisors."
+    },
+    {
+      "name": "us_location",
+      "description": "Company headquarters must be in the United States. Look for location information in company descriptions, LinkedIn pages, contact pages, or address information."
+    }
+  ]
+}

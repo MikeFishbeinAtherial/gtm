@@ -1,0 +1,23 @@
+{
+  "run_id": "findall_edf3c5902b58447286cf3baeaad01b16",
+  "query_name": "pe_firms_hiring_deal_sourcing",
+  "objective": "Find all mid-market private equity firms ($100M-$2B AUM) on the East Coast of the United States (ideally New York or Pennsylvania) that are currently hiring deal sourcing or business development roles",
+  "match_conditions": [
+    {
+      "name": "pe_firm_type",
+      "description": "Company must be a private equity firm, buyout firm, or growth equity firm. Exclude venture capital firms, hedge funds, banks, and credit unions."
+    },
+    {
+      "name": "mid_market_size",
+      "description": "Company must be mid-market sized. Look for: employee count 10-150, AUM $100M-$2B, or 'mid-market', 'middle market', 'boutique PE'. Exclude mega-firms with AUM over $2B or employee count over 200."
+    },
+    {
+      "name": "hiring_deal_sourcing",
+      "description": "Company must have active job postings for deal sourcing or business development roles. Look for: 'Deal Sourcing', 'Sourcing Analyst', 'Business Development', 'Deal Origination', 'Investment Sourcing', 'Deal Flow' posted in past 90 days on LinkedIn, company career pages, or job boards."
+    },
+    {
+      "name": "east_coast_location",
+      "description": "Company headquarters must be on the East Coast of the United States. Prioritize companies in New York or Pennsylvania, but also include other East Coast states: New York, Pennsylvania, New Jersey, Massachusetts, Connecticut, Maryland, Virginia, North Carolina, South Carolina, Georgia, Florida. Look for location information in company descriptions, LinkedIn pages, contact pages, or address information."
+    }
+  ]
+}

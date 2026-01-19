@@ -1,0 +1,23 @@
+{
+  "run_id": "findall_edf3c5902b584472bc8c1d8f88e4f6ec",
+  "query_name": "pe_firms_active_hiring_technical",
+  "objective": "Find all mid-market private equity firms ($100M-$2B AUM) on the East Coast of the United States (ideally New York or Pennsylvania) that are currently hiring for technical or data roles",
+  "match_conditions": [
+    {
+      "name": "pe_firm_type",
+      "description": "Company must be a private equity firm, buyout firm, or growth equity firm. Look for keywords: 'private equity', 'buyout', 'growth equity', 'PE firm'. Exclude venture capital firms, hedge funds, banks, and credit unions."
+    },
+    {
+      "name": "mid_market_size",
+      "description": "Company must be mid-market sized. Look for evidence: employee count 10-150, AUM between $100M-$2B, or descriptions like 'mid-market', 'middle market', 'boutique PE'. Exclude mega-firms: if AUM mentioned is over $2B, employee count over 200, or descriptions like 'global', 'multi-billion', 'largest PE firm'."
+    },
+    {
+      "name": "currently_hiring_technical",
+      "description": "Company must have active job postings for technical or data roles. Look for: job titles like 'Data Engineer', 'Platform Engineer', 'Automation Engineer', 'Technology Analyst', 'IT Manager', 'Data Analyst', 'Software Engineer', 'CTO', 'Head of Technology' posted in past 90 days on LinkedIn, company career pages, or job boards."
+    },
+    {
+      "name": "east_coast_location",
+      "description": "Company headquarters must be on the East Coast of the United States. Prioritize companies in New York or Pennsylvania, but also include other East Coast states: New York, Pennsylvania, New Jersey, Massachusetts, Connecticut, Maryland, Virginia, North Carolina, South Carolina, Georgia, Florida. Look for location information in company descriptions, LinkedIn pages, contact pages, or address information."
+    }
+  ]
+}

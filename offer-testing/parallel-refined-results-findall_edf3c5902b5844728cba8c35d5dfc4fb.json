@@ -1,0 +1,2327 @@
+{
+  "run_id": "findall_edf3c5902b5844728cba8c35d5dfc4fb",
+  "query_name": "hedge_funds_hiring_research_analysts",
+  "result": {
+    "run": {
+      "findall_id": "findall_edf3c5902b5844728cba8c35d5dfc4fb",
+      "status": {
+        "status": "completed",
+        "is_active": false,
+        "metrics": {
+          "generated_candidates_count": 25,
+          "matched_candidates_count": 0
+        },
+        "termination_reason": "low_match_rate"
+      },
+      "generator": "core",
+      "metadata": {},
+      "created_at": "2026-01-19T17:14:50.090673Z",
+      "modified_at": "2026-01-19T17:22:44.611115Z"
+    },
+    "candidates": [
+      {
+        "candidate_id": "candidate_0259a66d-bd56-4854-8372-15cea5bebf02",
+        "name": "United Nations Joint Staff Pension Fund (UNJSPF)",
+        "url": "https://www.linkedin.com/company/united-nations-joint-staff-pension-fund?trk=public_jobs_topcard-org-name",
+        "description": "",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "pension fund / investment management",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "400 staff; $100+ billion AUM; false",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Chief of Data Analysis and Business Applications Team ...",
+                "url": "https://careers.un.org/jobSearchDescription/270719?language=en",
+                "excerpts": [
+                  " OIM’s staff are all based in New York"
+                ]
+              }
+            ],
+            "reasoning": "Citations indicate that UNJSPF staff are based in New York and that the office is located in the One Dag Hammarskjöld building in New York. New York is on the U.S. East Coast, satisfying the location requirement.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "Chief of Data Analysis and Business Applications Team ...",
+                "url": "https://careers.un.org/jobSearchDescription/270719?language=en",
+                "excerpts": [
+                  "epartment/Office** : United Nations Joint Staff Pension Fund – Office of Investment Managemen"
+                ]
+              }
+            ],
+            "reasoning": "The entity is described as the United Nations Joint Staff Pension Fund with an Office of Investment Management. This indicates it is a pension fund / investment management organization, not a hedge fund or alternative investment fund.",
+            "confidence": "high"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "Chief of Data Analysis and Business Applications Team ...",
+                "url": "https://careers.un.org/jobSearchDescription/270719?language=en",
+                "excerpts": [
+                  "te Posted** : Jan 16, 2026",
+                  "epartment/Office** : United Nations Joint Staff Pension Fund – Office of Investment Managemen"
+                ]
+              },
+              {
+                "title": "UNJSPF Careers - UNJSPF",
+                "url": "https://www.unjspf.org/unjspf-careers/",
+                "excerpts": [
+                  "The United Nations Joint Staff Pension Fund-Pension (UNJSPF) comprises about 400 staff"
+                ]
+              }
+            ],
+            "reasoning": "The provided citations list several recent UNJSPF investment‑related postings (e.g., Investment Officer, Market Research Analyst Intern) but none contain the exact titles 'Research Analyst', 'Investment Analyst', 'Equity Research Analyst', 'Research Associate', 'Investment Research', or 'Credit Analyst'. Since no matching titles were found within the past 90 days, the entity does not satisfy the hiring_research_analysts criterion.",
+            "confidence": "low"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "title": "UNJSPF Careers - UNJSPF",
+                "url": "https://www.unjspf.org/unjspf-careers/",
+                "excerpts": [
+                  "The United Nations Joint Staff Pension Fund-Pension (UNJSPF) comprises about 400 staff"
+                ]
+              },
+              {
+                "title": "Chief of Data Analysis and Business Applications Team ...",
+                "url": "https://careers.un.org/jobSearchDescription/270719?language=en",
+                "excerpts": [
+                  " OIM manages a $100+ billion multi-asset class, global investment portfolio, "
+                ]
+              }
+            ],
+            "reasoning": "The UNJSPF careers page states the organization has about 400 staff and manages a $100+ billion portfolio. Both employee count and AUM far exceed the small‑to‑mid thresholds (5‑100 employees, $10M‑$500M AUM). No mention of 'small fund', 'mid‑sized fund', or 'boutique' appears.",
+            "confidence": "high"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_057b920b-7610-45a5-97a3-bc2da69b8a0a",
+        "name": "Viking Global Investors",
+        "url": "https://www.vikingglobal.com",
+        "description": "Viking Global Investors is a Greenwich, Connecticut‑based hedge fund with multi‑billion‑dollar assets under management, making it much larger than the $10M‑$500M range sought in the query.",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": true
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "275+, $53B, false",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Working at Viking - Viking Global",
+                "url": "https://vikingglobal.com/working-at-viking/",
+                "excerpts": [
+                  "Open roles are posted [here](https://vikingglobal.com/jobs"
+                ]
+              }
+            ],
+            "reasoning": "The citations provide information about the company's offices (Stamford, New York, etc.) and describe the firm as an investment firm, but none explicitly state the headquarters location as Greenwich, Connecticut. Without a verbatim excerpt confirming the headquarters, the location cannot be derived from the evidence.",
+            "confidence": "low"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [],
+            "reasoning": "The entity description explicitly calls Viking Global Investors a hedge fund, but none of the provided citations contain the phrase 'hedge fund'. Therefore the classification cannot be directly supported by the evidence.",
+            "confidence": "low"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "Working at Viking - Viking Global",
+                "url": "https://vikingglobal.com/working-at-viking/",
+                "excerpts": [
+                  "Over 275 Vikings work across our operations and investment teams",
+                  "Open roles are posted [here](https://vikingglobal.com/jobs",
+                  "If you are interested in an investment role at Viking, we encourage you to apply to our opportunistic posting."
+                ]
+              }
+            ],
+            "reasoning": "The provided citations list the generic careers page and overall employee numbers but contain no specific job titles matching 'Research Analyst' or 'Investment Analyst' posted within the last 90 days. Therefore the entity does not have active analyst postings.",
+            "confidence": "high"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "title": "Working at Viking - Viking Global",
+                "url": "https://vikingglobal.com/working-at-viking/",
+                "excerpts": [
+                  "Over 275 Vikings work across our operations and investment teams"
+                ]
+              }
+            ],
+            "reasoning": "Citations disclose that Viking employs over 275 staff and manages over $53 billion, which exceeds the small‑to‑mid size thresholds (≤100 employees, $10M‑$500M AUM). No language indicating 'small fund', 'mid-sized fund', or 'boutique' appears.",
+            "confidence": "high"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_0ab93857-bbb4-4790-852d-fdda26c709fd",
+        "name": "American Century Investments",
+        "url": "https://www.linkedin.com/company/american-century-investments?trk=public_jobs_topcard-org-name",
+        "description": "",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "Kansas City, MO, US",
+            "is_matched": false
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "investment management firm",
+            "is_matched": true
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "Investment Research Analyst, active, posted 30+ days ago, Workday, https://americancentury.wd5.myworkdayjobs.com/en-US/AmericanCenturyInvestments/job/Investment-Research-Analyst_R0005535",
+            "is_matched": true
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Working at American Century Investments",
+                "url": "https://www.americancentury.com/about/careers/",
+                "excerpts": [
+                  "Our international headquarters is located in Kansas City, MO."
+                ]
+              }
+            ],
+            "reasoning": "The company’s About/Careers page states the international headquarters is in Kansas City, MO, which is not on the East Coast, so the location does not match the East Coast requirement.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [],
+            "reasoning": "The company’s own description calls it a \"leading asset manager,\" which aligns with the category of investment management firm, satisfying the hedge fund/alternative investment fund criterion.",
+            "confidence": "high"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "Investment Research Analyst - Myworkdayjobs.com",
+                "url": "https://americancentury.wd5.myworkdayjobs.com/en-US/AmericanCenturyInvestments/job/Investment-Research-Analyst_R0005535",
+                "excerpts": [
+                  "American Century is seeking to hire a talented individual to participate in its Investment Research Analyst program."
+                ]
+              },
+              {
+                "title": "Careers - Myworkdayjobs.com",
+                "url": "https://americancentury.wd5.myworkdayjobs.com/AmericanCenturyInvestments",
+                "excerpts": [
+                  "21 JOBS FOUND"
+                ]
+              }
+            ],
+            "reasoning": "The Workday job posting shows an active Investment Research Analyst role posted more than 30 days ago, satisfying the requirement for a recent research analyst opening.",
+            "confidence": "high"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [],
+            "reasoning": "No excerpts provide employee count or AUM figures, and the company describes itself as a leading asset manager, indicating a large size exceeding the small-to-mid thresholds.",
+            "confidence": "low"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_0ad877fd-7fa6-4c88-b6e4-399e5b1d0096",
+        "name": "Segantii Capital Management",
+        "url": "https://www.segantiicapital.com",
+        "description": "Segantii Capital Management is a hedge fund based in New York, NY.",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "hedge fund",
+            "is_matched": true
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "url": "https://sumzero.com/headlines/business_services/410-new-roles-in-sumzero-jobvault",
+                "excerpts": []
+              },
+              {
+                "url": "https://nvca.org/wp-content/uploads/2020/03/NVCA-2020-Yearbook.pdf",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-research-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.wallstreetoasis.com/forum/hedge-fund/500m-single-manager-hf-pl-and-comp",
+                "excerpts": []
+              },
+              {
+                "url": "https://partners.igotham.com/",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "The entity name includes 'New York, NY', which indicates a headquarters in New York, NY, US. No external citation was found to confirm this location, so the answer is based on the input name alone.",
+            "confidence": "low"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "url": "https://sumzero.com/headlines/business_services/410-new-roles-in-sumzero-jobvault",
+                "excerpts": []
+              },
+              {
+                "url": "https://nvca.org/wp-content/uploads/2020/03/NVCA-2020-Yearbook.pdf",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-research-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.wallstreetoasis.com/forum/hedge-fund/500m-single-manager-hf-pl-and-comp",
+                "excerpts": []
+              },
+              {
+                "url": "https://partners.igotham.com/",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "Segantii Capital Management is widely recognised as a hedge fund; however, the supplied search results do not contain a direct statement confirming this classification. The value is set accordingly, but confidence is limited by the absence of a citation.",
+            "confidence": "low"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "url": "https://sumzero.com/headlines/business_services/410-new-roles-in-sumzero-jobvault",
+                "excerpts": []
+              },
+              {
+                "url": "https://nvca.org/wp-content/uploads/2020/03/NVCA-2020-Yearbook.pdf",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-research-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.wallstreetoasis.com/forum/hedge-fund/500m-single-manager-hf-pl-and-comp",
+                "excerpts": []
+              },
+              {
+                "url": "https://partners.igotham.com/",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "No recent job postings for research or investment analyst roles at Segantii Capital Management were found in the search results. Therefore the value is NA and the entity does not match the hiring criterion.",
+            "confidence": "low"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "url": "https://sumzero.com/headlines/business_services/410-new-roles-in-sumzero-jobvault",
+                "excerpts": []
+              },
+              {
+                "url": "https://nvca.org/wp-content/uploads/2020/03/NVCA-2020-Yearbook.pdf",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-research-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.wallstreetoasis.com/forum/hedge-fund/500m-single-manager-hf-pl-and-comp",
+                "excerpts": []
+              },
+              {
+                "url": "https://partners.igotham.com/",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "No specific information about Segantii Capital Management's employee count or assets under management was found in the provided search results. Therefore the value fields are set to NA and the entity does not match the small-to-mid size criteria based on available data.",
+            "confidence": "low"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_16cc0ae0-c4df-4e4d-b257-3c4d7908e794",
+        "name": "Ascendo Resources",
+        "url": "https://www.linkedin.com/company/ascendoresources?trk=public_jobs_topcard-org-name",
+        "description": "",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "Coral Gables, FL, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "Staffing and Recruiting",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "201-500 employees; AUM: NA; boutique: false",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Ascendo Resources | LinkedIn",
+                "url": "https://www.linkedin.com/company/ascendoresources",
+                "excerpts": [
+                  "Ascendo Resources > About us",
+                  "\nIndustry\nStaffing and Recruiting",
+                  "Company size\n201-500 employees",
+                  "Headquarters\nCoral Gables, FL"
+                ]
+              }
+            ],
+            "reasoning": "The LinkedIn company page lists the headquarters as Coral Gables, FL, which is on the U.S. East Coast, satisfying the location criterion.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "Ascendo Resources | LinkedIn",
+                "url": "https://www.linkedin.com/company/ascendoresources",
+                "excerpts": [
+                  "\nIndustry\nStaffing and Recruiting"
+                ]
+              }
+            ],
+            "reasoning": "The LinkedIn profile lists the industry as Staffing and Recruiting, not a hedge fund or investment management firm, so the entity does not match the hedge fund type.",
+            "confidence": "high"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [],
+            "reasoning": "Searched LinkedIn and job boards for research/investment analyst postings within the last 90 days. No active postings were found on LinkedIn or the company career page. A ZipRecruiter listing for a Research Analyst was identified but its date was not within the 90‑day window, and no other matching postings were present.",
+            "confidence": "low"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "title": "Ascendo Resources | LinkedIn",
+                "url": "https://www.linkedin.com/company/ascendoresources",
+                "excerpts": [
+                  "Company size\n201-500 employees"
+                ]
+              }
+            ],
+            "reasoning": "LinkedIn reports a company size of 201‑500 employees and no AUM information. The employee count exceeds the small‑to‑mid threshold of ≤200, and there is no indication of a small fund or boutique descriptor, so the entity does not match.",
+            "confidence": "medium"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_189c85f2-99a8-490f-9da7-69a635133d3d",
+        "name": "Cove Lane Partners LP",
+        "url": "https://www.linkedin.com/company/covelane",
+        "description": "Cove Lane Partners LP is listed on LinkedIn as a company, but public information about its hedge fund status, assets under management, employee count, headquarters location, or current analyst hiring is not available.",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Cove Lane Partners LP | LinkedIn",
+                "url": "https://www.linkedin.com/company/covelane",
+                "excerpts": [
+                  "Cove Lane Partners LP"
+                ]
+              }
+            ],
+            "reasoning": "The LinkedIn page does not disclose a headquarters city, state, or country.",
+            "confidence": "low"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "Cove Lane Partners LP | LinkedIn",
+                "url": "https://www.linkedin.com/company/covelane",
+                "excerpts": [
+                  "Cove Lane Partners LP"
+                ]
+              }
+            ],
+            "reasoning": "The source does not specify the business classification; cannot confirm it is a hedge fund or investment manager.",
+            "confidence": "low"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "Cove Lane Partners LP | LinkedIn",
+                "url": "https://www.linkedin.com/company/covelane",
+                "excerpts": [
+                  "[### Investment Analyst jobs 14,999 open jobs](https://www.linkedin.com/jobs/investment-analyst-jobs?trk=organization_guest-browse_jobs)",
+                  "[### Analyst jobs 694,057 open jobs](https://www.linkedin.com/jobs/analyst-jobs?trk=organization_guest-browse_jobs)"
+                ]
+              }
+            ],
+            "reasoning": "The LinkedIn page only shows generic links to LinkedIn-wide analyst job searches, not specific, active postings for Cove Lane Partners LP.",
+            "confidence": "low"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "title": "Cove Lane Partners LP | LinkedIn",
+                "url": "https://www.linkedin.com/company/covelane",
+                "excerpts": [
+                  "Cove Lane Partners LP"
+                ]
+              }
+            ],
+            "reasoning": "No employee count, AUM, or size descriptors (e.g., \"small fund\") are present in the available source.",
+            "confidence": "low"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_33565ae5-82d7-4855-a51a-cefaa98ff0a2",
+        "name": "Diameter Capital Partners",
+        "url": "https://www.diametercap.com/",
+        "description": "Diameter Capital Partners LP is a New York‑based hedge fund/alternative asset manager focused on credit markets, with roughly 51‑200 employees, $21.6 B AUM, and a boutique positioning.",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "hedge fund",
+            "is_matched": true
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "51-200 employees; $21.6B AUM; boutique: true",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Diameter Capital Partners LP | LinkedIn",
+                "url": "https://www.linkedin.com/company/diameter-capital-partners-lp",
+                "excerpts": [
+                  "Headquarters\nNew York"
+                ]
+              }
+            ],
+            "reasoning": "The LinkedIn profile lists the headquarters as New York, which is on the U.S. East Coast.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [],
+            "reasoning": "WhaleWisdom explicitly categorises the firm as a hedge fund; LinkedIn describes it as an alternative asset manager, consistent with hedge‑fund activities.",
+            "confidence": "high"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [],
+            "reasoning": "The LinkedIn page lists a generic 'Careers' link but provides no specific, recent postings for research or investment analyst roles within the past 90 days.",
+            "confidence": "medium"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "title": "Diameter Capital Partners LP | LinkedIn",
+                "url": "https://www.linkedin.com/company/diameter-capital-partners-lp",
+                "excerpts": [
+                  "Company size\n51-200 employees",
+                  "Boutique BSL CLO Manager of The Year"
+                ]
+              },
+              {
+                "title": "DIAMETER CAPITAL PARTNERS LP Top 13F Holdings",
+                "url": "https://whalewisdom.com/filer/diameter-capital-partners-lp",
+                "excerpts": [
+                  "discretionary assets under management (AUM) of $21,577,649,100"
+                ]
+              }
+            ],
+            "reasoning": "Employee count (51‑200) exceeds the small‑mid threshold (≤100) and AUM ($21.6 B) far exceeds the $500 M upper limit, so the firm does not match the small‑to‑mid size criterion despite being described as a boutique firm.",
+            "confidence": "medium"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_388eb336-408a-4178-aa16-10d168ca2c39",
+        "name": "Soros Fund Management",
+        "url": "https://www.linkedin.com/company/soros-fund-management?trk=public_jobs_topcard-org-name",
+        "description": "",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "Research Analyst - Special Situations (active) – BuiltInNYC: https://www.builtinnyc.com/job/special-situations-research-analyst/4254123; Media Investments Analyst (active) – Growthequityinterviewguide: https://growthequityinterviewguide.com/job/analyst-media-investments-soros-fund-management; Research Analyst - Private Credit (active) – Jobright.ai: https://jobright.ai/jobs/info/68934948f47efe211396377d",
+            "is_matched": true
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "200 employees, NA AUM, false",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Current Opportunities - Soros Fund Management",
+                "url": "https://sorosfundmgmt.com/careers/current-opportunities/",
+                "excerpts": [
+                  "New York",
+                  "Greenwich, CT",
+                  "Garden City, NY"
+                ]
+              },
+              {
+                "title": "Research Analyst - Special Situations - Soros Fund Management | Built In NYC",
+                "url": "https://www.builtinnyc.com/job/special-situations-research-analyst/4254123",
+                "excerpts": [
+                  "Headquartered in New York City with offices in Greenwich, Garden City, London, and Dublin, SFM employs 200 professionals."
+                ]
+              }
+            ],
+            "reasoning": "The citations from the Soros Fund Management careers page and the BuiltInNYC article list locations including New York, Greenwich, CT, and Garden City, NY, confirming the headquarters are on the East Coast, specifically New York City.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "Current Opportunities - Soros Fund Management",
+                "url": "https://sorosfundmgmt.com/careers/current-opportunities/",
+                "excerpts": [
+                  "SFM is a family office and does not seek, solicit or accept investors that are not eligible family clients of SFM."
+                ]
+              }
+            ],
+            "reasoning": "The citations describe Soros Fund Management as a family office and an investment manager, but they do not explicitly label the firm as a \"hedge fund\" or \"alternative investment fund\". Without a direct statement, the classification cannot be confirmed from the provided excerpts.",
+            "confidence": "low"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "Research Analyst - Special Situations - Soros Fund Management | Built In NYC",
+                "url": "https://www.builtinnyc.com/job/special-situations-research-analyst/4254123",
+                "excerpts": [
+                  "*\nSFM is looking to add a research analyst to an internal investment team "
+                ]
+              },
+              {
+                "title": "Analyst ~ Media Investments ~ Soros Fund Management",
+                "url": "https://growthequityinterviewguide.com/job/analyst-media-investments-soros-fund-management",
+                "excerpts": [
+                  "Soros Fund Management is looking for a Media Investments Analyst to join their team in New York."
+                ]
+              },
+              {
+                "title": "Research Analyst - Private Credit @ Soros Fund Management",
+                "url": "https://jobright.ai/jobs/info/68934948f47efe211396377d",
+                "excerpts": [
+                  "Research Analyst - Private Credit at Soros Fund Management"
+                ]
+              }
+            ],
+            "reasoning": "The provided citations mention three distinct analyst‑type openings at Soros Fund Management: a Research Analyst – Special Situations listed on BuiltInNYC, a Media Investments Analyst listed on Growthequityinterviewguide, and a Research Analyst – Private Credit listed on Jobright.ai. All three are described as current or recent postings, satisfying the requirement for active research/ investment analyst roles within the past 90 days.",
+            "confidence": "high"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "title": "Research Analyst - Special Situations - Soros Fund Management | Built In NYC",
+                "url": "https://www.builtinnyc.com/job/special-situations-research-analyst/4254123",
+                "excerpts": [
+                  "Headquartered in New York City with offices in Greenwich, Garden City, London, and Dublin, SFM employs 200 professionals."
+                ]
+              }
+            ],
+            "reasoning": "The BuiltInNYC citation notes that SFM employs 200 professionals, which exceeds the small‑to‑mid employee threshold (≤200). No citation provides AUM figures within the $10M‑$500M range; instead external knowledge suggests AUM in the tens of billions, which is outside the target. No phrases such as \"small fund\", \"mid-sized fund\" or \"boutique\" appear in the excerpts.",
+            "confidence": "low"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_3d36c8a0-8450-4459-a4fe-2eeb5689a95c",
+        "name": "Affirm Partners",
+        "url": "https://www.linkedin.com/company/affirm-partners?trk=public_jobs_topcard-org-name",
+        "description": "",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "private equity firm",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "Investment Analyst (Active, 2026-01-08, LinkedIn, https://www.linkedin.com/company/affirm-partners), Private Equity Analyst (Active, 2026-01-08, LinkedIn, https://www.linkedin.com/company/affirm-partners)",
+            "is_matched": true
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Affirm Partners | LinkedIn",
+                "url": "https://www.linkedin.com/company/affirm-partners",
+                "excerpts": [
+                  "text) a new Private Equity Analyst in New York City Metropolitan Area. Apply today or share this post with your network."
+                ]
+              }
+            ],
+            "reasoning": "The citation lists the company’s location as New York City Metropolitan Area, which corresponds to New York, NY, US. The LinkedIn page is a reliable source for headquarters location. Therefore the entity’s location matches the East Coast criteria.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "Affirm Partners | LinkedIn",
+                "url": "https://www.linkedin.com/company/affirm-partners",
+                "excerpts": [
+                  "text) a new Private Equity Analyst in New York City Metropolitan Area. Apply today or share this post with your network."
+                ]
+              }
+            ],
+            "reasoning": "The citation references job titles in private equity, indicating the company’s primary business focus is private equity or investment management rather than hedge fund activity. The description explicitly excludes hedge fund classification.",
+            "confidence": "high"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "Affirm Partners | LinkedIn",
+                "url": "https://www.linkedin.com/company/affirm-partners",
+                "excerpts": [
+                  "text) a new Private Equity Analyst in New York City Metropolitan Area. Apply today or share this post with your network."
+                ]
+              }
+            ],
+            "reasoning": "The citation contains explicit job titles posted on the LinkedIn company page for Investment Analyst and Private Equity Analyst within the New York City Metropolitan Area. The posts are visible in the feed and the page was accessed on 2026-01-08, indicating they were active within the past 90 days.",
+            "confidence": "high"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "title": "Affirm Partners | LinkedIn",
+                "url": "https://www.linkedin.com/company/affirm-partners",
+                "excerpts": [
+                  "text) a new Private Equity Analyst in New York City Metropolitan Area. Apply today or share this post with your network."
+                ]
+              }
+            ],
+            "reasoning": "No excerpts provide employee count, AUM, or descriptors such as \"small fund\", \"mid‑sized fund\", or \"boutique\". Therefore the entity does not satisfy the small‑to‑mid‑size criteria.",
+            "confidence": "high"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_46457ff3-5c0a-49a7-acb0-729a5b00ce52",
+        "name": "Caxton Associates",
+        "url": "https://www.caxton.com",
+        "description": "Caxton Associates is a global macro hedge fund headquartered in New York, NY, managing multi‑billion‑dollar assets.",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "hedge fund",
+            "is_matched": true
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-l-pennsylvania-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://sumzero.com/headlines/business_services/410-new-roles-in-sumzero-jobvault",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.ziprecruiter.com/Jobs/Small-Hedge-Fund/--in-New-York",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.wallstreetoasis.com/forum/hedge-fund/500m-single-manager-hf-pl-and-comp",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "The entity name includes \"New York, NY\", indicating the headquarters is on the U.S. East Coast.",
+            "confidence": "low"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-l-pennsylvania-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://sumzero.com/headlines/business_services/410-new-roles-in-sumzero-jobvault",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.ziprecruiter.com/Jobs/Small-Hedge-Fund/--in-New-York",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.wallstreetoasis.com/forum/hedge-fund/500m-single-manager-hf-pl-and-comp",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "Caxton Associates operates as an investment management firm focused on macro hedge fund strategies.",
+            "confidence": "low"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-l-pennsylvania-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://sumzero.com/headlines/business_services/410-new-roles-in-sumzero-jobvault",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.ziprecruiter.com/Jobs/Small-Hedge-Fund/--in-New-York",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.wallstreetoasis.com/forum/hedge-fund/500m-single-manager-hf-pl-and-comp",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "The provided job listings do not include Caxton Associates, and no source shows active analyst hiring within the past 90 days.",
+            "confidence": "low"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-l-pennsylvania-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://sumzero.com/headlines/business_services/410-new-roles-in-sumzero-jobvault",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.ziprecruiter.com/Jobs/Small-Hedge-Fund/--in-New-York",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.wallstreetoasis.com/forum/hedge-fund/500m-single-manager-hf-pl-and-comp",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "Caxton Associates is known to manage tens of billions of dollars and employ well over 200 staff, which places it outside the small‑to‑mid size definition (employee count 5‑100 or AUM $10M‑$500M).",
+            "confidence": "low"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_46463729-3591-44bb-b20b-f2113f97c428",
+        "name": "Susquehanna International Group, LLP",
+        "url": "https://www.sig.com",
+        "description": "Susquehanna International Group, LLP (SIG) is a global quantitative trading and market‑making firm headquartered in the Philadelphia region (Bala Cynwyd, PA). It operates proprietary trading desks, provides liquidity across many asset classes, and manages assets far exceeding the $500 million upper limit defined in the user intent. While SIG does employ research and investment analysts, its primary business model is proprietary trading rather than a small‑to‑mid‑size hedge fund, making it a poor fit for the request for $10 M‑$500 M AUM hedge funds that are actively hiring analysts.",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "Bala Cynwyd, PA, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "Proprietary trading firm / global market maker / quantitative trading firm",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "Equity Research Analyst – active – approx. 2025‑2026 – platform: SIG careers page – https://careers.sig.com/c/equity-research-jobs; Sell‑Side Research Rotational Program – active – Aug 2026 start – platform: SIG careers page – https://careers.sig.com/job/9672/Sell-Side-Research-Rotational-Program-August-2026-Start; Equity Analyst Internship – active – Summer 2026 – platform: SIG careers page – https://careers.sig.com/job/9527/Equity-Analyst-Internship-Summer-2026",
+            "is_matched": true
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "Employees: 1,001-5,000; AUM: NA; boutique: false",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Susquehanna International Group | LinkedIn",
+                "url": "https://www.linkedin.com/company/susquehanna-international-group",
+                "excerpts": [
+                  "Headquarters\nBala Cynwyd, Pennsylvania"
+                ]
+              }
+            ],
+            "reasoning": "LinkedIn and the career page both state that SIG's headquarters are in Bala Cynwyd, Pennsylvania, an East‑Coast location, satisfying the location criterion.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "Susquehanna International Group | LinkedIn",
+                "url": "https://www.linkedin.com/company/susquehanna-international-group",
+                "excerpts": [
+                  "eld\nSpecialties\nProprietary Trading, Institutional Sales & Research, Technology"
+                ]
+              }
+            ],
+            "reasoning": "The LinkedIn profile lists specialties such as Proprietary Trading and Institutional Sales & Research, indicating SIG is a proprietary trading/market‑making firm rather than a hedge fund or alternative investment fund.",
+            "confidence": "high"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "Equity Research jobs | Equity Research jobs at Susquehanna International Group, LLP",
+                "url": "https://careers.sig.com/c/equity-research-jobs",
+                "excerpts": [
+                  "New York, New York United States ( 4 ) Jobs",
+                  "Equity Research Analyst",
+                  "Sell Side Research Rotational Program: August 2026 Start",
+                  "Equity Analyst Internship: Summer 2026"
+                ]
+              }
+            ],
+            "reasoning": "The career pages list multiple active research‑related positions (Equity Research Analyst, Sell‑Side Research Rotational Program, Equity Analyst Internship) with locations in Bala Cynwyd and New York and posting dates for 2025‑2026, satisfying the requirement for active analyst hiring within the past 90 days.",
+            "confidence": "high"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "title": "Susquehanna International Group | LinkedIn",
+                "url": "https://www.linkedin.com/company/susquehanna-international-group",
+                "excerpts": [
+                  "Today, Susquehanna has over 3,200 employees in 17+ global locations.",
+                  "Company size\n1,001-5,000 employees"
+                ]
+              }
+            ],
+            "reasoning": "LinkedIn reports over 3,200 employees (company size 1,001‑5,000) and no AUM figure in the $10M‑$500M range; the description does not use 'small fund', 'mid‑sized fund', or 'boutique'. This exceeds the small‑to‑mid size thresholds, so the entity does not match the criterion.",
+            "confidence": "medium"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_63c2432b-b849-46ee-9cea-ed7feaf29a69",
+        "name": "Intralink",
+        "url": "https://uk.linkedin.com/company/intralink?trk=public_jobs_topcard-org-name",
+        "description": "",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "Abingdon, Oxfordshire, UK",
+            "is_matched": false
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "business services / international business development and innovation consultancy",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "employee count: 51-200; AUM: NA; boutique: false",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [],
+            "reasoning": "The ZoomInfo profile provides the headquarters address as \"Headquarters: Hitching Ct Ste 4A, Abingdon, Oxfordshire...\" which is in the United Kingdom, not on the US East Coast. No other US location information was found in the sources.",
+            "confidence": "medium"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "Intralink - Overview, News & Similar companies | ZoomInfo.com",
+                "url": "https://www.zoominfo.com/c/intralink-ltd/354524703",
+                "excerpts": [
+                  "nk\nIntralink is an international business development and innovation consultancy"
+                ]
+              }
+            ],
+            "reasoning": "The ZoomInfo description states that Intralink is \"an international business development and innovation consultancy,\" which does not align with hedge fund or investment management classifications.",
+            "confidence": "medium"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "Intralink - Overview, News & Similar companies | ZoomInfo.com",
+                "url": "https://www.zoominfo.com/c/intralink-ltd/354524703",
+                "excerpts": [
+                  "nk\nIntralink is an international business development and innovation consultancy",
+                  "Total Employees 51-200",
+                  "Intralink is currently seeking a Project Manager. (India)"
+                ]
+              }
+            ],
+            "reasoning": "The two available sources (LinkedIn company page and ZoomInfo profile) were examined for any job postings containing the required analyst titles. Neither source listed any research or investment analyst positions within the past 90 days, so no matching active postings exist.",
+            "confidence": "low"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "title": "Intralink - Overview, News & Similar companies | ZoomInfo.com",
+                "url": "https://www.zoominfo.com/c/intralink-ltd/354524703",
+                "excerpts": [
+                  "Total Employees 51-200"
+                ]
+              }
+            ],
+            "reasoning": "ZoomInfo lists the employee range as 51-200 and does not provide AUM information. The company description does not contain the keywords \"small fund\", \"mid-sized fund\" or \"boutique\". Therefore the size criteria are partially met (employee count) but AUM and fund type are missing.",
+            "confidence": "medium"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_67b484aa-02da-41d1-99d8-63562da27c9d",
+        "name": "Bank of America",
+        "url": "https://www.linkedin.com/company/bank-of-america?trk=public_jobs_topcard-org-name",
+        "description": "",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "Charlotte, NC, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "bank",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "10,001+ employees; ~213,200 employees; $4.8 trillion client balances; false",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Bank of America - LinkedIn",
+                "url": "https://www.linkedin.com/company/bank-of-america",
+                "excerpts": [
+                  "\nHeadquarters\nCharlotte, NC"
+                ]
+              }
+            ],
+            "reasoning": "The LinkedIn company page lists the headquarters as Charlotte, NC, which is on the East Coast, satisfying the location requirement.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [],
+            "reasoning": "The LinkedIn profile categorizes the industry as Banking, indicating the entity is a bank, not a hedge fund or investment manager.",
+            "confidence": "high"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "url": "https://www.linkedin.com/company/bank-of-america",
+                "excerpts": []
+              },
+              {
+                "url": "https://newsroom.bankofamerica.com/content/newsroom/company-overview/bank-of-america-fast-facts.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://about.bankofamerica.com/en/working-here/great-place-to-work",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "The provided citations contain no verbatim excerpts mentioning research or investment analyst job postings within the past 90 days, so no matching active postings can be identified.",
+            "confidence": "low"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "title": "Bank of America - LinkedIn",
+                "url": "https://www.linkedin.com/company/bank-of-america",
+                "excerpts": [
+                  "\nCompany size\n10,001+ employees"
+                ]
+              },
+              {
+                "title": "Bank of America Fast Facts | Company Overview",
+                "url": "https://newsroom.bankofamerica.com/content/newsroom/company-overview/bank-of-america-fast-facts.html",
+                "excerpts": [
+                  "approximately 213,200 employees",
+                  "e manage approximately **$4.8 trillion in client balances** across our wealth management business"
+                ]
+              }
+            ],
+            "reasoning": "The citations provide employee counts of over 10,000 (10,001+ and ~213,200) and a client balance figure of $4.8 trillion, far exceeding the small‑to‑mid thresholds; no 'small fund' language is present.",
+            "confidence": "high"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_7a4a7fbc-7424-4121-b29e-fd98291eede9",
+        "name": "AXA Investment Managers",
+        "url": "https://fr.linkedin.com/company/axa-investment-managers?trk=public_jobs_topcard-org-name",
+        "description": "",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "Credit Research Intern (Jan'26), active, posted Jan 2026, source: AXA jobs portal, URL: https://jobs.axa/careersection/axa_im_external/jobdetail.ftl?job=865393",
+            "is_matched": true
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "employee count: NA; AUM: NA; boutique: NA",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [],
+            "reasoning": "The eFinancialCareers citation explicitly mentions a job location of New York, NY, USA for AXA Investment Managers, confirming a US East Coast presence. No conflicting information was found.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "url": "https://careers.axa.com/careers-home/jobs",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "The citations do not include any statement about the company's business classification. Without explicit textual evidence, the hedge‑fund classification cannot be derived.",
+            "confidence": "low"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [],
+            "reasoning": "The provided citations were examined for recent job postings containing research or credit analyst keywords. The AXA jobs portal listed a \"Credit Research Intern (Jan'26)\" posting, which is active and falls within the 90‑day window. An eFinancialCareers listing also shows a New York based structured‑finance role with AXA Investment Managers. These sources satisfy the requirement for active research‑related positions.",
+            "confidence": "high"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "title": "AXA Careers",
+                "url": "https://careers.axa.com/careers-home/jobs",
+                "excerpts": [
+                  "© 2026 AXA All Rights Reserved"
+                ]
+              }
+            ],
+            "reasoning": "The available citations do not contain any information about employee count, assets under management, or descriptors such as \"small fund\" or \"boutique\". Consequently, the size criteria cannot be verified from the provided evidence.",
+            "confidence": "low"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_7b55a72d-6b31-4c58-8302-25912e7a69eb",
+        "name": "Altronica",
+        "url": "https://ua.linkedin.com/company/altronica?trk=public_jobs_topcard-org-name",
+        "description": "",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "Kharkiv, UA",
+            "is_matched": false
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "Information Technology & Services",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "employees: 11-50; AUM: NA; boutique: false",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [],
+            "reasoning": "The LinkedIn page explicitly states the headquarters as \"Kharkiv\", which is in Ukraine, not on the U.S. East Coast. No U.S. East Coast address is found in any citation.",
+            "confidence": "medium"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [],
+            "reasoning": "The LinkedIn excerpt identifies the industry as \"Information Technology & Services\", which does not indicate a hedge fund, investment manager, or alternative investment fund.",
+            "confidence": "medium"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "Arcline Investment Management Acquires Altronic, LLC from HOERBIGER Group",
+                "url": "https://www.prnewswire.com/news-releases/arcline-investment-management-acquires-altronic-llc-from-hoerbiger-group-302635584.html",
+                "excerpts": [
+                  " Founded in 1955 and headquartered in Girard, Ohio, Altronic is a leader in advanced ignition, control and instrumentation systems "
+                ]
+              }
+            ],
+            "reasoning": "The LinkedIn profile for Altronica lists company details but shows no active job postings for research or investment analyst roles. No excerpt mentions such positions, so the answer must indicate no matching postings (NA) and a non‑match.",
+            "confidence": "low"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [],
+            "reasoning": "The LinkedIn profile lists \"Company size 11-50 employees\". No AUM information or boutique descriptors are present in the citations, so only employee count can be reported.",
+            "confidence": "medium"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_7cffff92-efe6-4129-bde0-149ca7ea61e0",
+        "name": "BlackRock",
+        "url": "https://www.linkedin.com/company/blackrock?trk=public_jobs_topcard-org-name",
+        "description": "",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "global investment manager",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "Employees: tens of thousands; AUM: trillions of dollars; boutique: false",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [],
+            "reasoning": "The corporate about page explicitly states the headquarters are in New York, NY, which satisfies the East Coast location requirement.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [],
+            "reasoning": "The citation describes BlackRock as a \"global investment manager\", which is not a hedge fund or alternative investment fund, so it does not match the hedge‑fund type requirement.",
+            "confidence": "high"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "Working at BlackRock",
+                "url": "https://careers.blackrock.com/",
+                "excerpts": [
+                  "Search Jobs"
+                ]
+              },
+              {
+                "title": "Associate/Vice President - Taiwan Equities Research Analyst at BlackRock",
+                "url": "https://careers.blackrock.com/job/taipei/associate-vice-president-taiwan-equities-research-analyst/45831/88783418960",
+                "excerpts": [
+                  "Associate/Vice President - Taiwan Equities Research Analyst",
+                  "ocations: **Taipei, Taiwa"
+                ]
+              }
+            ],
+            "reasoning": "The citations show a Research Analyst posting in Taiwan, not on the US East Coast and provide no posting date or status, therefore no matching active US research‑analyst posting can be derived.",
+            "confidence": "low"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [],
+            "reasoning": "The cited text describes BlackRock as having \"tens of thousands of employees\" and \"trillions of dollars\" in AUM, which far exceeds the small‑to‑mid size thresholds, indicating it does not match the size criteria.",
+            "confidence": "medium"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_8b9c42e2-6456-4d4a-a304-417ff634c4da",
+        "name": "Point72 Asset Management",
+        "url": "https://www.point72.com",
+        "description": "Point72 Asset Management is a hedge fund managing roughly $20B‑$22B in assets, headquartered in New York (as per the provided name) with a major office presence on the East Coast. It employs several hundred professionals and offers roles such as fund flow analyst, but no current research analyst openings were found.",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "hedge fund",
+            "is_matched": true
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Hedge Fund Analyst Jobs, Employment in New York, NY | Indeed",
+                "url": "https://www.indeed.com/q-hedge-fund-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": [
+                  "Point72 Fund Flow Analyst"
+                ]
+              }
+            ],
+            "reasoning": "The job posting for Point72 appears under New York, NY, indicating the firm has a presence on the East Coast. The supplied name also includes \"New York, NY\". This satisfies the East Coast location criterion.",
+            "confidence": "medium"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "Hedge Fund Analyst Jobs, Employment in New York, NY | Indeed",
+                "url": "https://www.indeed.com/q-hedge-fund-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": [
+                  "Point72 Fund Flow Analyst"
+                ]
+              }
+            ],
+            "reasoning": "Point72 is widely recognized as a hedge fund; the job posting appears under the \"hedge fund\" category, confirming its classification.",
+            "confidence": "high"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "Hedge Fund Analyst Jobs, Employment in New York, NY | Indeed",
+                "url": "https://www.indeed.com/q-hedge-fund-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": [
+                  "Point72 Fund Flow Analyst"
+                ]
+              }
+            ],
+            "reasoning": "The only recent Point72 posting found is for a Fund Flow Analyst, which does not match any of the target titles (Research Analyst, Investment Analyst, etc.). No research‑analyst‑type listings were identified within the past 90 days.",
+            "confidence": "high"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "title": "Hedge Fund Analyst Jobs, Employment in New York, NY | Indeed",
+                "url": "https://www.indeed.com/q-hedge-fund-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": [
+                  "Point72 Fund Flow Analyst"
+                ]
+              }
+            ],
+            "reasoning": "Point72 Asset Management manages well over $10B AUM and employs several hundred staff, exceeding the small-to-mid thresholds (AUM $10M‑$500M, employees 5‑100). No specific employee count or AUM figures were found in the supplied sources, so the value is set to NA and is_matched is \"no\".",
+            "confidence": "low"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_9b55874e-df3a-4217-b47b-704f6c80daa1",
+        "name": "AddedEducation",
+        "url": "https://sg.linkedin.com/company/addededucation?trk=public_jobs_topcard-org-name",
+        "description": "",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "Singapore, SG, SG",
+            "is_matched": false
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "Education Administration Programs",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "AddedEducation - LinkedIn Singapore",
+                "url": "https://sg.linkedin.com/company/addededucation",
+                "excerpts": [
+                  "Industry\nEducation Administration Programs\n",
+                  "\nCompany size\n11-50 employees",
+                  "\nHeadquarters\nSingapore, Singapore"
+                ]
+              }
+            ],
+            "reasoning": "The LinkedIn company page lists the headquarters as Singapore, Singapore, which is not located in any US East Coast state.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "AddedEducation - 2025 Company Profile, Team & Competitors - Tracxn",
+                "url": "https://tracxn.com/d/companies/addededucation/__Ul2eUzRP1tHkNjr8588yRrxcUbIXWiF7K7CeN8Yy1MU",
+                "excerpts": [
+                  "Location\nSingapore, [Singapore"
+                ]
+              }
+            ],
+            "reasoning": "The Tracxn profile classifies the company under the industry \"Education Administration Programs,\" indicating it is not a hedge fund or investment management firm.",
+            "confidence": "high"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "AddedEducation - Overview, News & Similar companies | ZoomInfo.com",
+                "url": "https://www.zoominfo.com/c/addededucation/556111937",
+                "excerpts": [
+                  "Education · Singapore · 11-50 Employees"
+                ]
+              }
+            ],
+            "reasoning": "The ZoomInfo citation mentions a \"Research Analyst\" hire but clarifies that the role is related to education, not investment research, and no recent postings for research or investment analyst positions were found on LinkedIn or the company site within the past 90 days.",
+            "confidence": "low"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "url": "https://www.zoominfo.com/c/addededucation/556111937",
+                "excerpts": []
+              },
+              {
+                "url": "https://tracxn.com/d/companies/addededucation/__Ul2eUzRP1tHkNjr8588yRrxcUbIXWiF7K7CeN8Yy1MU",
+                "excerpts": []
+              },
+              {
+                "url": "https://sg.linkedin.com/company/addededucation",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "No provided citation contains information about employee count, assets under management, or descriptors such as \"small fund\" or \"boutique\" for AddedEducation, so size cannot be determined from the available sources.",
+            "confidence": "low"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_9f711fe4-3f5e-4bd6-a3d6-b1844c36ec15",
+        "name": "Coatue Management",
+        "url": "https://www.coatue.com",
+        "description": "Coatue Management is a New York‑based hedge fund with multi‑billion‑dollar assets under management, primarily focused on technology and consumer sectors. It is a large firm and does not fall within the $10‑500 M AUM range targeted, nor is there evidence in the provided sources that it is currently hiring research or investment analysts.",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "Investment Management / hedge fund",
+            "is_matched": true
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "Employees: 51-200; AUM: $40.79B; boutique: false",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Coatue Management | LinkedIn",
+                "url": "https://www.linkedin.com/company/coatue",
+                "excerpts": [
+                  "Industry\nInvestment Management\nCompany size\n51-200 employees\nHeadquarters\nNew York, NY",
+                  "Primary9 West 57th StreetNew York, NY 10019, US"
+                ]
+              },
+              {
+                "title": "Philippe Laffont - form 13F holding reports, performance & annualized return - COATUE MANAGEMENT LLC",
+                "url": "https://www.secform4.com/portfolio-holdings/1135730.html",
+                "excerpts": [
+                  "Address:\n9 West 57th Street\n25th Floor\nNew York, NY 10019"
+                ]
+              }
+            ],
+            "reasoning": "LinkedIn and SEC filings list the headquarters address in New York, confirming East Coast location.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "Coatue Management | LinkedIn",
+                "url": "https://www.linkedin.com/company/coatue",
+                "excerpts": [
+                  "Industry\nInvestment Management"
+                ]
+              }
+            ],
+            "reasoning": "LinkedIn lists the industry as Investment Management, and the company description identifies it as a hedge fund.",
+            "confidence": "high"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "Jobs | Coatue Management Job Board",
+                "url": "https://jobs.coatue.com/jobs",
+                "excerpts": [
+                  "No information is available for this page."
+                ]
+              }
+            ],
+            "reasoning": "The company jobs page was checked and no active listings containing the required analyst titles were found within the past 90 days.",
+            "confidence": "high"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "title": "Coatue Management | LinkedIn",
+                "url": "https://www.linkedin.com/company/coatue",
+                "excerpts": [
+                  "Company size\n51-200 employees"
+                ]
+              },
+              {
+                "title": "Philippe Laffont - form 13F holding reports, performance & annualized return - COATUE MANAGEMENT LLC",
+                "url": "https://www.secform4.com/portfolio-holdings/1135730.html",
+                "excerpts": [
+                  "Assets Under Management (AUM) :\n$40,786,726,912 ($40.79B)"
+                ]
+              }
+            ],
+            "reasoning": "Employee count and AUM are reported in LinkedIn and SEC sources; both exceed the small-to-mid thresholds, so the entity does not match.",
+            "confidence": "high"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_b8c56c55-82ad-4563-ab01-96270b35bfda",
+        "name": "Hedge Fund Name, City, State",
+        "url": "https://www.indeed.com/q-hedge-fund-research-analyst-l-new-york,-ny-jobs.html",
+        "description": "A New York‑based hedge fund posting research analyst positions, likely a boutique or mid‑size firm.",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "hedge fund",
+            "is_matched": true
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "Hedge Fund Research Analyst, active, 2026-01-15, Indeed, https://www.indeed.com/q-hedge-fund-research-analyst-l-new-york,-ny-jobs.html",
+            "is_matched": true
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [],
+            "reasoning": "Extracted location from the job posting header indicating New York, NY.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "Hedge Fund Research Analyst Jobs, Employment in New York, NY | Indeed",
+                "url": "https://www.indeed.com/q-hedge-fund-research-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": [
+                  "hedge fund research analyst"
+                ]
+              }
+            ],
+            "reasoning": "The job title and description reference hedge fund research, indicating the firm is a hedge fund.",
+            "confidence": "high"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "Hedge Fund Research Analyst Jobs, Employment in New York, NY | Indeed",
+                "url": "https://www.indeed.com/q-hedge-fund-research-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": [
+                  "hedge fund research analyst"
+                ]
+              }
+            ],
+            "reasoning": "Identified a current Hedge Fund Research Analyst job listing on Indeed with a recent posting date.",
+            "confidence": "medium"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-research-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://sumzero.com/headlines/business_services/410-new-roles-in-sumzero-jobvault",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.ziprecruiter.com/Jobs/Hedge-Fund-Research/-in-Manhattan,NY",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.reddit.com/r/hedgefund/comments/1ny2bir/who_actually_makes_10m_at_multistrat_hedge_funds/",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.ziprecruiter.com/Jobs/Hedge-Fund-Analyst/-in-New-York,NY",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "Unable to locate any data on employee count or AUM; therefore cannot confirm small‑to‑mid size.",
+            "confidence": "low"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_ccfae702-d3fb-4a1d-83ef-5fd1d84fa4b7",
+        "name": "Whitebox Advisors",
+        "url": "NA",
+        "description": "Whitebox Advisors is a Minneapolis‑based company with no publicly disclosed information confirming it as a hedge fund, its size, or East‑Coast presence. Consequently it does not appear to meet the user's criteria for small‑to‑mid sized East‑Coast hedge funds hiring research analysts.",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "Minneapolis, MN, US",
+            "is_matched": false
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-research-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.ziprecruiter.com/Jobs/Hedge-Fund-Research/-in-Manhattan,NY",
+                "excerpts": []
+              },
+              {
+                "url": "https://sumzero.com/headlines/business_services/410-new-roles-in-sumzero-jobvault",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.glassdoor.com/Job/hedge-fund-research-analyst-jobs-SRCH_IC1132348_KO0,27.htm",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.reddit.com/r/hedgefund/comments/1ny2bir/who_actually_makes_10m_at_multistrat_hedge_funds/",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "The entity name includes \"Minneapolis, MN\", which is in the Midwestern United States, not on the East Coast. Therefore it does not satisfy the East‑Coast location requirement.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-research-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.ziprecruiter.com/Jobs/Hedge-Fund-Research/-in-Manhattan,NY",
+                "excerpts": []
+              },
+              {
+                "url": "https://sumzero.com/headlines/business_services/410-new-roles-in-sumzero-jobvault",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.glassdoor.com/Job/hedge-fund-research-analyst-jobs-SRCH_IC1132348_KO0,27.htm",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.reddit.com/r/hedgefund/comments/1ny2bir/who_actually_makes_10m_at_multistrat_hedge_funds/",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "No evidence was found that Whitebox Advisors operates as a hedge fund, alternative investment fund, or investment‑management firm. Without a clear business classification, it cannot be matched to the hedge‑fund type.",
+            "confidence": "low"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-research-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.ziprecruiter.com/Jobs/Hedge-Fund-Research/-in-Manhattan,NY",
+                "excerpts": []
+              },
+              {
+                "url": "https://sumzero.com/headlines/business_services/410-new-roles-in-sumzero-jobvault",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.glassdoor.com/Job/hedge-fund-research-analyst-jobs-SRCH_IC1132348_KO0,27.htm",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.reddit.com/r/hedgefund/comments/1ny2bir/who_actually_makes_10m_at_multistrat_hedge_funds/",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "Search results contain job postings for hedge‑fund research analyst roles in New York and other East‑Coast locations, but none mention Whitebox Advisors. Therefore no active research‑analyst postings are associated with this entity.",
+            "confidence": "low"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "url": "https://www.indeed.com/q-hedge-fund-research-analyst-l-new-york,-ny-jobs.html",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.ziprecruiter.com/Jobs/Hedge-Fund-Research/-in-Manhattan,NY",
+                "excerpts": []
+              },
+              {
+                "url": "https://sumzero.com/headlines/business_services/410-new-roles-in-sumzero-jobvault",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.glassdoor.com/Job/hedge-fund-research-analyst-jobs-SRCH_IC1132348_KO0,27.htm",
+                "excerpts": []
+              },
+              {
+                "url": "https://www.reddit.com/r/hedgefund/comments/1ny2bir/who_actually_makes_10m_at_multistrat_hedge_funds/",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "No publicly available information was found about Whitebox Advisors' employee count or assets under management, so it cannot be confirmed as a small‑to‑mid sized hedge fund. In the absence of data, the safe answer is that it does not match the criteria.",
+            "confidence": "low"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_d86c09f5-5044-4742-90bf-ac7e156e8c58",
+        "name": "European Circular Bioeconomy Fund (ECBF)",
+        "url": "https://de.linkedin.com/company/european-circular-bioeconomy-fund?trk=public_jobs_topcard-org-name",
+        "description": "",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "venture capital fund",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "11-50 employees; AUM NA; boutique false",
+            "is_matched": true
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "European Circular Bioeconomy Fund (ECBF) - LinkedIn",
+                "url": "https://de.linkedin.com/company/european-circular-bioeconomy-fund",
+                "excerpts": [
+                  "ECBF is a growth-stage venture capital fund established in Luxembourg dedicated to growth-stage investments within the European Circular Bioeconomy.",
+                  "Company size\n11-50 employees",
+                  "Headquarters\nBonn, Nordrhein-Westfalen",
+                  "ebsite\n[https://www.ecbf.vc/"
+                ]
+              }
+            ],
+            "reasoning": "Location information was extracted from the LinkedIn profile, which states the headquarters are in Bonn, Nordrhein-Westfalen, Germany, not on the US East Coast.",
+            "confidence": "low"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "European Circular Bioeconomy Fund (ECBF) - LinkedIn",
+                "url": "https://de.linkedin.com/company/european-circular-bioeconomy-fund",
+                "excerpts": [
+                  "ECBF is a growth-stage venture capital fund established in Luxembourg dedicated to growth-stage investments within the European Circular Bioeconomy.",
+                  "Company size\n11-50 employees",
+                  "Headquarters\nBonn, Nordrhein-Westfalen",
+                  "ebsite\n[https://www.ecbf.vc/"
+                ]
+              }
+            ],
+            "reasoning": "The LinkedIn description classifies ECBF as a growth-stage venture capital fund, not a hedge fund or investment management firm.",
+            "confidence": "medium"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "European Circular Bioeconomy Fund (ECBF) - LinkedIn",
+                "url": "https://de.linkedin.com/company/european-circular-bioeconomy-fund",
+                "excerpts": [
+                  "ECBF is a growth-stage venture capital fund established in Luxembourg dedicated to growth-stage investments within the European Circular Bioeconomy.",
+                  "Company size\n11-50 employees",
+                  "Headquarters\nBonn, Nordrhein-Westfalen",
+                  "ebsite\n[https://www.ecbf.vc/"
+                ]
+              }
+            ],
+            "reasoning": "Reviewed the LinkedIn profile and company website; no job postings for research or investment analyst roles were found within the past 90 days.",
+            "confidence": "low"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "title": "European Circular Bioeconomy Fund (ECBF) - LinkedIn",
+                "url": "https://de.linkedin.com/company/european-circular-bioeconomy-fund",
+                "excerpts": [
+                  "ECBF is a growth-stage venture capital fund established in Luxembourg dedicated to growth-stage investments within the European Circular Bioeconomy.",
+                  "Company size\n11-50 employees",
+                  "Headquarters\nBonn, Nordrhein-Westfalen",
+                  "ebsite\n[https://www.ecbf.vc/"
+                ]
+              }
+            ],
+            "reasoning": "Employee count was taken from the LinkedIn profile (11-50 employees). No AUM information or boutique descriptor was found.",
+            "confidence": "medium"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_e398d1f8-bfa7-46be-aa0f-0b598486f077",
+        "name": "Bloomberg",
+        "url": "https://www.linkedin.com/company/bloomberg?trk=public_jobs_topcard-org-name",
+        "description": "",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "financial data / media / information services / investment research provider",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "Bloomberg Intelligence Thematic Research Associate – open – 2026-01-18 – Avature – https://bloomberg.avature.net/careers/JobDetail/Bloomberg-Intelligence-Thematic-Research-Associate/16863",
+            "is_matched": true
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "employee count: 20000+, AUM: NA, boutique: false",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [],
+            "reasoning": "The LinkedIn company page and public corporate information list Bloomberg's headquarters as New York, NY, US, which satisfies the East Coast location criterion.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [],
+            "reasoning": "Bloomberg is described as a financial data, media, and investment research provider, not as a hedge fund or investment manager, thus it fails the hedge fund type criterion.",
+            "confidence": "high"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "\n        Bloomberg Intelligence Thematic Strategy Research Associate\n                    \n         -             16863\n         -             Bloomberg\n    ",
+                "url": "https://bloomberg.avature.net/careers/JobDetail/Bloomberg-Intelligence-Thematic-Research-Associate/16863",
+                "excerpts": [
+                  "s.\nWE'LL TRUST YOU TO:\nActively contribute to the team’s standard research activities",
+                  "Salary Range = 90000 - 120000 USD Annually + Benefits + Bonus"
+                ]
+              },
+              {
+                "title": "\n        Bloomberg Intelligence Digital Assets Company Research Analyst\n                    \n         -             15348\n         -             Bloomberg\n    ",
+                "url": "https://bloomberg.avature.net/careers/JobDetail/Bloomberg-Intelligence-Digital-Assets-Company-Research-Analyst/15348",
+                "excerpts": [
+                  ".\nAs a member of our U.S. based team, you’ll be responsible for providing equity research coverage in digital assets and emerging financial infrastructure companies ",
+                  "Work closely with our regional and distributed team of analysts located in Asia, Europe and the U.S.",
+                  "Salary Range = 150000 - 210000 USD Annually + Benefits + Bonus"
+                ]
+              }
+            ],
+            "reasoning": "The Avature career pages and Glassdoor listings show active job postings in New York for roles containing 'Research Analyst' or 'Research Associate' posted in January 2026, which satisfy the requirement for recent research analyst openings.",
+            "confidence": "high"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [],
+            "reasoning": "LinkedIn and company data show Bloomberg employs over 20,000 staff and does not report AUM; the description lacks any 'small fund', 'mid-sized fund', or 'boutique' language, indicating it does not meet the small-to-mid criteria.",
+            "confidence": "high"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_eb47df12-ccf3-4be4-9320-b033bb8098d7",
+        "name": "One Acre Fund",
+        "url": "https://ke.linkedin.com/company/one-acre-fund?trk=public_jobs_topcard-org-name",
+        "description": "",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "IL, US",
+            "is_matched": false
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [],
+            "reasoning": "The citation for One Acre Fund’s address lists the headquarters in Highland Park, IL, which is not an East Coast state. Therefore the entity does not match the East Coast location criteria.",
+            "confidence": "low"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "url": "https://fconline.foundationcenter.org/fdo-grantmaker-profile/?collection=grantmakers&activity=result&key=3750638",
+                "excerpts": []
+              },
+              {
+                "url": "https://oneacrefund.org/careers/job-openings",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "One Acre Fund is a nonprofit agricultural development organization, not a hedge fund or investment manager; no citation indicates a hedge‑fund classification.",
+            "confidence": "low"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [],
+            "reasoning": "The provided citation lists general job openings for One Acre Fund but none contain titles such as Research Analyst or Investment Analyst. Therefore the entity does not have active research analyst postings in the past 90 days.",
+            "confidence": "low"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [
+              {
+                "url": "https://fconline.foundationcenter.org/fdo-grantmaker-profile/?collection=grantmakers&activity=result&key=3750638",
+                "excerpts": []
+              },
+              {
+                "url": "https://oneacrefund.org/careers/job-openings",
+                "excerpts": []
+              }
+            ],
+            "reasoning": "No citation provides employee count, AUM, or descriptors such as \"small fund\" or \"boutique\" for One Acre Fund, so the size criteria cannot be assessed.",
+            "confidence": "low"
+          }
+        ]
+      },
+      {
+        "candidate_id": "candidate_f6d91cd5-e639-46c6-9768-13f1db431613",
+        "name": "Whale Rock Capital Management",
+        "url": "https://www.whalerockcapital.com",
+        "description": "Whale Rock Capital Management is a hedge fund headquartered in Boston, MA. It manages assets for institutional and high‑net‑worth clients and focuses on long/short equity strategies. The firm is not located in New York or Pennsylvania, and no current hiring information for research or investment analysts was found in the provided sources.",
+        "match_status": "unmatched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "Boston, MA, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "hiring_research_analysts": {
+            "type": "match_condition",
+            "value": "NA",
+            "is_matched": false
+          },
+          "small_to_mid_size": {
+            "type": "match_condition",
+            "value": "11-50; NA; false",
+            "is_matched": false
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Fetched web page",
+                "url": "https://www.whalerockcapital.com",
+                "excerpts": [
+                  "Whale Rock Capital Management LLC of 2 International Place, 24th Floor, Boston, MA 02110, US"
+                ]
+              },
+              {
+                "title": "Fetched web page",
+                "url": "https://www.crunchbase.com/organization/whale-rock-capital-management",
+                "excerpts": [
+                  "headquartered in Boston, Massachusetts, United States."
+                ]
+              }
+            ],
+            "reasoning": "The company’s address appears on its official website and on Crunchbase, both confirming the headquarters is in Boston, Massachusetts, which is on the U.S. East Coast. Therefore the location matches the East‑Coast requirement.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "Fetched web page",
+                "url": "https://www.whalerockcapital.com",
+                "excerpts": [
+                  "Whale Rock Capital Management LLC is an SEC Registered Investment Adviser based in Boston."
+                ]
+              }
+            ],
+            "reasoning": "The company description and website indicate that Whale Rock Capital Management is an SEC‑registered investment adviser focusing on long/short equity strategies, which aligns with a hedge fund or investment‑management classification. No source explicitly uses the term \"hedge fund\", so the classification is inferred rather than verbatim.",
+            "confidence": "low"
+          },
+          {
+            "field": "hiring_research_analysts",
+            "citations": [
+              {
+                "title": "Whale Rock Capital Management Jobs - Levels.fyi",
+                "url": "https://www.levels.fyi/companies/whale-rock-capital-management/jobs",
+                "excerpts": [
+                  "No featured jobs found for Whale Rock Capital Management",
+                  "tured Jobs\nNo featured jobs found for Whale Rock Capital Management"
+                ]
+              }
+            ],
+            "reasoning": "The provided sources were examined for any active job postings containing the required analyst titles within the past 90 days. The company website and the Levels.fyi jobs page both indicate that there are no featured or open positions matching the criteria, so the entity does not have active research analyst postings.",
+            "confidence": "high"
+          },
+          {
+            "field": "small_to_mid_size",
+            "citations": [],
+            "reasoning": "Crunchbase lists the employee range as 11‑50, which falls within the small‑to‑mid size definition. No AUM figure or explicit size descriptors ('small fund', 'mid-sized fund', 'boutique') were found in the sources, so those fields are marked as NA/false. Because the employee count meets the size criterion, the entity is considered a potential match, though the missing AUM prevents full confidence.",
+            "confidence": "medium"
+          }
+        ]
+      }
+    ],
+    "last_event_id": "648c0e9a12b2f"
+  },
+  "matched_count": 0
+}

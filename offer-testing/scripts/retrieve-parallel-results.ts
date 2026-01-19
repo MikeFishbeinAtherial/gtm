@@ -267,17 +267,23 @@ async function main() {
     try {
       const result = await getFindAllResult(runId)
       
-      if (result.status === 'not_found') {
+      // Check if run exists and is completed
+      // API returns: { run: { status: { status: 'completed' } }, candidates: [...] }
+      const runStatus = result.run?.status?.status || result.status
+      
+      if (runStatus === 'not_found' || !result.run) {
         console.log(`   ⚠️  Run not found (may have expired or been cleaned up)`)
         continue
       }
 
-      if (result.status !== 'completed') {
-        console.log(`   ⏳ Status: ${result.status} (not completed yet)`)
+      if (runStatus !== 'completed') {
+        console.log(`   ⏳ Status: ${runStatus} (not completed yet)`)
         continue
       }
 
-      const items = result.output?.items || result.candidates || []
+      // Extract candidates from API response
+      // API returns candidates array directly, or in output.items
+      const items = result.candidates || result.output?.items || []
       console.log(`   ✅ Found ${items.length} companies`)
 
       // Determine signal type from query name (if we have it)

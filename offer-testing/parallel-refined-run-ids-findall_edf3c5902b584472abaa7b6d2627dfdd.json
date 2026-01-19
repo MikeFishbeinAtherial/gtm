@@ -1,0 +1,29 @@
+{
+  "run_id": "findall_edf3c5902b584472abaa7b6d2627dfdd",
+  "query_name": "hedge_funds_active_hiring_ai_leadership",
+  "objective": "Find all small-to-mid hedge funds ($10M-$500M AUM) on the East Coast of the United States (ideally New York or Pennsylvania) that are currently hiring and have AI/data leadership on staff",
+  "match_conditions": [
+    {
+      "name": "hedge_fund_type",
+      "description": "Company must be a hedge fund, alternative investment fund, or investment management firm. Look for keywords: 'hedge fund', 'alternative investment', 'investment management'. Exclude banks, credit unions, insurance companies, venture capital firms, and private equity firms."
+    },
+    {
+      "name": "small_to_mid_size",
+      "description": "Company must be small-to-mid sized. Look for evidence: employee count 5-100, AUM between $10M-$500M, or descriptions like 'small fund', 'mid-sized fund', 'boutique'. Exclude large firms: if AUM mentioned is over $500M, employee count over 200, or descriptions like 'global', 'multi-billion', 'largest'."
+    },
+    {
+      "name": "currently_hiring",
+      "description": "Company must have active job postings listed publicly. Look for: LinkedIn job postings from past 90 days, company career page with open positions, job board listings. Evidence should show they are actively recruiting."
+    },
+    {
+      "name": "ai_data_leadership",
+      "description": "Company must have at least one person on staff with AI/data leadership title. Look for: 'Head of AI', 'Head of Data', 'Chief Data Officer', 'CDO', 'Director of Data', 'VP Data', 'AI Engineer', 'Machine Learning Engineer', 'Data Scientist' in LinkedIn profiles, team pages, or job descriptions."
+    },
+    {
+      "name": "east_coast_location",
+      "description": "Company headquarters must be on the East Coast of the United States. Prioritize companies in New York or Pennsylvania, but also include other East Coast states: New York, Pennsylvania, New Jersey, Massachusetts, Connecticut, Maryland, Virginia, North Carolina, South Carolina, Georgia, Florida. Look for location information in company descriptions, LinkedIn pages, contact pages, or address information."
+    }
+  ],
+  "generator": "core",
+  "match_limit": 50
+}

@@ -1,0 +1,23 @@
+{
+  "run_id": "findall_edf3c5902b5844728cba8c35d5dfc4fb",
+  "query_name": "hedge_funds_hiring_research_analysts",
+  "objective": "Find all small-to-mid hedge funds ($10M-$500M AUM) on the East Coast of the United States (ideally New York or Pennsylvania) that are currently hiring research analysts or investment analysts",
+  "match_conditions": [
+    {
+      "name": "hedge_fund_type",
+      "description": "Company must be a hedge fund, alternative investment fund, or investment management firm. Exclude banks, credit unions, insurance companies, venture capital firms, and private equity firms."
+    },
+    {
+      "name": "small_to_mid_size",
+      "description": "Company must be small-to-mid sized. Look for: employee count 5-100, AUM $10M-$500M, or 'small fund', 'mid-sized fund', 'boutique'. Exclude large firms with AUM over $500M or employee count over 200."
+    },
+    {
+      "name": "hiring_research_analysts",
+      "description": "Company must have active job postings for research or investment analyst roles. Look for: 'Research Analyst', 'Investment Analyst', 'Equity Research Analyst', 'Research Associate', 'Investment Research', 'Credit Analyst' posted in past 90 days on LinkedIn, company career pages, or job boards."
+    },
+    {
+      "name": "east_coast_location",
+      "description": "Company headquarters must be on the East Coast of the United States. Prioritize companies in New York or Pennsylvania, but also include other East Coast states: New York, Pennsylvania, New Jersey, Massachusetts, Connecticut, Maryland, Virginia, North Carolina, South Carolina, Georgia, Florida. Look for location information in company descriptions, LinkedIn pages, contact pages, or address information."
+    }
+  ]
+}

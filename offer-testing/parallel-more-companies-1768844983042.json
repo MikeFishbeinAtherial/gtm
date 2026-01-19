@@ -1,0 +1,470 @@
+{
+  "timestamp": "2026-01-19T17:49:43.042Z",
+  "total_found": 4,
+  "total_candidates": 100,
+  "queries_run": 3,
+  "generator": "core",
+  "estimated_cost": 17,
+  "companies": [
+    {
+      "name": "Millennium Management",
+      "domain": "wallstreetprep.com",
+      "url": "https://www.wallstreetprep.com/knowledge/top-hedge-funds/",
+      "description": "Millennium Management is a New York‑based hedge fund founded in 1989, managing about $390.6 billion in assets and employing a multi‑strategy investment approach.",
+      "match_status": "matched",
+      "output": {
+        "east_coast_location": {
+          "type": "match_condition",
+          "value": "New York, NY, US",
+          "is_matched": true
+        },
+        "hedge_fund_type": {
+          "type": "match_condition",
+          "value": "",
+          "is_matched": true
+        }
+      },
+      "basis": [
+        {
+          "field": "east_coast_location",
+          "citations": [
+            {
+              "title": "Millennium Management LLC/NY - Company Profile and ...",
+              "url": "https://www.bloomberg.com/profile/company/2878538Z:US",
+              "excerpts": [
+                "Millennium Management LLC of New York operates as an investment management firm."
+              ]
+            }
+          ],
+          "reasoning": "The citations from the company website, Wikipedia, and Bloomberg all state that Millennium Management’s headquarters are in New York, United States. The company site lists the address “New York, NY 10022 United States”, Wikipedia lists “Headquarters: New York, U.S.”, and Bloomberg describes it as operating in New York. These sources collectively confirm the primary headquarters location on the U.S. East Coast, specifically New York, NY, US.",
+          "confidence": "high"
+        },
+        {
+          "field": "hedge_fund_type",
+          "citations": [
+            {
+              "title": "Millennium Management - Wikipedia",
+              "url": "https://en.wikipedia.org/wiki/Millennium_Management",
+              "excerpts": [
+                "Industry |[Hedge fun"
+              ]
+            },
+            {
+              "title": "Millennium Management LLC/NY - Company Profile and ...",
+              "url": "https://www.bloomberg.com/profile/company/2878538Z:US",
+              "excerpts": [
+                "Millennium Management LLC of New York operates as an investment management firm."
+              ]
+            }
+          ],
+          "reasoning": "The provided citations describe Millennium Management as an investment management firm with a multistrategy hedge fund offering and list its industry as “Hedge fund”. This directly satisfies the criteria for a hedge fund or alternative investment firm.",
+          "confidence": "high"
+        }
+      ],
+      "raw_data": {
+        "candidate_id": "candidate_1634f330-2fcd-47b7-aa91-d8b44597571c",
+        "name": "Millennium Management",
+        "url": "https://www.wallstreetprep.com/knowledge/top-hedge-funds/",
+        "description": "Millennium Management is a New York‑based hedge fund founded in 1989, managing about $390.6 billion in assets and employing a multi‑strategy investment approach.",
+        "match_status": "matched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "",
+            "is_matched": true
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Millennium Management LLC/NY - Company Profile and ...",
+                "url": "https://www.bloomberg.com/profile/company/2878538Z:US",
+                "excerpts": [
+                  "Millennium Management LLC of New York operates as an investment management firm."
+                ]
+              }
+            ],
+            "reasoning": "The citations from the company website, Wikipedia, and Bloomberg all state that Millennium Management’s headquarters are in New York, United States. The company site lists the address “New York, NY 10022 United States”, Wikipedia lists “Headquarters: New York, U.S.”, and Bloomberg describes it as operating in New York. These sources collectively confirm the primary headquarters location on the U.S. East Coast, specifically New York, NY, US.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "Millennium Management - Wikipedia",
+                "url": "https://en.wikipedia.org/wiki/Millennium_Management",
+                "excerpts": [
+                  "Industry |[Hedge fun"
+                ]
+              },
+              {
+                "title": "Millennium Management LLC/NY - Company Profile and ...",
+                "url": "https://www.bloomberg.com/profile/company/2878538Z:US",
+                "excerpts": [
+                  "Millennium Management LLC of New York operates as an investment management firm."
+                ]
+              }
+            ],
+            "reasoning": "The provided citations describe Millennium Management as an investment management firm with a multistrategy hedge fund offering and list its industry as “Hedge fund”. This directly satisfies the criteria for a hedge fund or alternative investment firm.",
+            "confidence": "high"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Bridgewater Associates",
+      "domain": "bridgewater.com",
+      "url": "https://www.bridgewater.com/",
+      "description": "Bridgewater Associates is a large hedge fund and investment management firm headquartered in Westport, CT, US. Its East‑Coast location and hedge‑fund business model make it a relevant match for the request to find hedge funds on the U.S. East Coast.",
+      "match_status": "matched",
+      "output": {
+        "east_coast_location": {
+          "type": "match_condition",
+          "value": "Westport, CT, US",
+          "is_matched": true
+        },
+        "hedge_fund_type": {
+          "type": "match_condition",
+          "value": "",
+          "is_matched": true
+        }
+      },
+      "basis": [
+        {
+          "field": "east_coast_location",
+          "citations": [
+            {
+              "title": "Home — Bridgewater Associates",
+              "url": "https://www.bridgewater.com/",
+              "excerpts": [
+                "One Nyala Farms Road\nWestport, CT 06880"
+              ]
+            },
+            {
+              "title": "Bridgewater Associates - Wikipedia",
+              "url": "https://en.wikipedia.org/wiki/Bridgewater_Associates",
+              "excerpts": [
+                "In 1981, the company moved its headquarters from New York City to [Westport, Connecticut"
+              ]
+            },
+            {
+              "title": "Bridgewater Associates, LP (Bridgewater Associates) - Hedge Fund Manager, United States | SWFI",
+              "url": "https://www.swfinstitute.org/profile/598cdaa50124e9fd2d05aab2",
+              "excerpts": [
+                "ddress: | One Glendinning Place, Westport, CT 06880-124"
+              ]
+            },
+            {
+              "title": "Bridgewater Associates | Research Starters | EBSCO Research",
+              "url": "https://www.ebsco.com/research-starters/business-and-management/bridgewater-associates",
+              "excerpts": [
+                "Corporate Headquarters:** Westport, Connectic"
+              ]
+            }
+          ],
+          "reasoning": "The entity Bridgewater Associates lists its headquarters address as Westport, CT in multiple sources. Westport is a city in Connecticut, a state on the U.S. East Coast, satisfying the East Coast location requirement.",
+          "confidence": "high"
+        },
+        {
+          "field": "hedge_fund_type",
+          "citations": [
+            {
+              "title": "Bridgewater Associates, LP (Bridgewater Associates) - Hedge Fund Manager, United States | SWFI",
+              "url": "https://www.swfinstitute.org/profile/598cdaa50124e9fd2d05aab2",
+              "excerpts": [
+                "ype: | Hedge Fund Manage"
+              ]
+            }
+          ],
+          "reasoning": "Bridgewater Associates is described as a hedge fund manager in the SWFI profile and as an investment management firm that runs hedge fund strategies in Wikipedia and other reports.",
+          "confidence": "high"
+        }
+      ],
+      "raw_data": {
+        "candidate_id": "candidate_4cf690c6-18dd-40ca-8e44-817c8059f546",
+        "name": "Bridgewater Associates",
+        "url": "https://www.bridgewater.com/",
+        "description": "Bridgewater Associates is a large hedge fund and investment management firm headquartered in Westport, CT, US. Its East‑Coast location and hedge‑fund business model make it a relevant match for the request to find hedge funds on the U.S. East Coast.",
+        "match_status": "matched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "Westport, CT, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "",
+            "is_matched": true
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Home — Bridgewater Associates",
+                "url": "https://www.bridgewater.com/",
+                "excerpts": [
+                  "One Nyala Farms Road\nWestport, CT 06880"
+                ]
+              },
+              {
+                "title": "Bridgewater Associates - Wikipedia",
+                "url": "https://en.wikipedia.org/wiki/Bridgewater_Associates",
+                "excerpts": [
+                  "In 1981, the company moved its headquarters from New York City to [Westport, Connecticut"
+                ]
+              },
+              {
+                "title": "Bridgewater Associates, LP (Bridgewater Associates) - Hedge Fund Manager, United States | SWFI",
+                "url": "https://www.swfinstitute.org/profile/598cdaa50124e9fd2d05aab2",
+                "excerpts": [
+                  "ddress: | One Glendinning Place, Westport, CT 06880-124"
+                ]
+              },
+              {
+                "title": "Bridgewater Associates | Research Starters | EBSCO Research",
+                "url": "https://www.ebsco.com/research-starters/business-and-management/bridgewater-associates",
+                "excerpts": [
+                  "Corporate Headquarters:** Westport, Connectic"
+                ]
+              }
+            ],
+            "reasoning": "The entity Bridgewater Associates lists its headquarters address as Westport, CT in multiple sources. Westport is a city in Connecticut, a state on the U.S. East Coast, satisfying the East Coast location requirement.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "Bridgewater Associates, LP (Bridgewater Associates) - Hedge Fund Manager, United States | SWFI",
+                "url": "https://www.swfinstitute.org/profile/598cdaa50124e9fd2d05aab2",
+                "excerpts": [
+                  "ype: | Hedge Fund Manage"
+                ]
+              }
+            ],
+            "reasoning": "Bridgewater Associates is described as a hedge fund manager in the SWFI profile and as an investment management firm that runs hedge fund strategies in Wikipedia and other reports.",
+            "confidence": "high"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Two Sigma Investments",
+      "domain": "twosigma.com",
+      "url": "https://www.twosigma.com/",
+      "description": "Two Sigma Investments is a quantitative hedge fund headquartered in New York, NY, specializing in systematic and data‑driven investment strategies.",
+      "match_status": "matched",
+      "output": {
+        "east_coast_location": {
+          "type": "match_condition",
+          "value": "New York, NY 10013",
+          "is_matched": true
+        },
+        "hedge_fund_type": {
+          "type": "match_condition",
+          "value": "",
+          "is_matched": true
+        }
+      },
+      "basis": [
+        {
+          "field": "east_coast_location",
+          "citations": [
+            {
+              "title": "Two Sigma Investments",
+              "url": "https://www.twosigma.com/",
+              "excerpts": [
+                "wo Sigma Investments, LP\n100 Avenue of the Americas\nNew York, NY 10013\n[Contact Us"
+              ]
+            },
+            {
+              "title": "Two Sigma - Wikipedia",
+              "url": "https://en.wikipedia.org/wiki/Two_Sigma",
+              "excerpts": [
+                "ndustry |[Hedge fund"
+              ]
+            }
+          ],
+          "reasoning": "The entity’s headquarters were identified from the official website and Wikipedia page, both of which list the address in New York, NY. Since New York is on the U.S. East Coast, the location matches the required criteria.",
+          "confidence": "high"
+        },
+        {
+          "field": "hedge_fund_type",
+          "citations": [
+            {
+              "title": "Two Sigma Investments",
+              "url": "https://www.twosigma.com/",
+              "excerpts": [
+                "wo Sigma Investments, LP\n100 Avenue of the Americas\nNew York, NY 10013\n[Contact Us"
+              ]
+            },
+            {
+              "title": "Two Sigma - Wikipedia",
+              "url": "https://en.wikipedia.org/wiki/Two_Sigma",
+              "excerpts": [
+                "ndustry |[Hedge fund"
+              ]
+            }
+          ],
+          "reasoning": "The Wikipedia excerpt explicitly labels Two Sigma as a hedge fund, satisfying the hedge‑fund criteria, and no conflicting information is present.",
+          "confidence": "high"
+        }
+      ],
+      "raw_data": {
+        "candidate_id": "candidate_aa866806-5806-49d5-b4ca-e6055c11dc06",
+        "name": "Two Sigma Investments",
+        "url": "https://www.twosigma.com/",
+        "description": "Two Sigma Investments is a quantitative hedge fund headquartered in New York, NY, specializing in systematic and data‑driven investment strategies.",
+        "match_status": "matched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "New York, NY 10013",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "",
+            "is_matched": true
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Two Sigma Investments",
+                "url": "https://www.twosigma.com/",
+                "excerpts": [
+                  "wo Sigma Investments, LP\n100 Avenue of the Americas\nNew York, NY 10013\n[Contact Us"
+                ]
+              },
+              {
+                "title": "Two Sigma - Wikipedia",
+                "url": "https://en.wikipedia.org/wiki/Two_Sigma",
+                "excerpts": [
+                  "ndustry |[Hedge fund"
+                ]
+              }
+            ],
+            "reasoning": "The entity’s headquarters were identified from the official website and Wikipedia page, both of which list the address in New York, NY. Since New York is on the U.S. East Coast, the location matches the required criteria.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [
+              {
+                "title": "Two Sigma Investments",
+                "url": "https://www.twosigma.com/",
+                "excerpts": [
+                  "wo Sigma Investments, LP\n100 Avenue of the Americas\nNew York, NY 10013\n[Contact Us"
+                ]
+              },
+              {
+                "title": "Two Sigma - Wikipedia",
+                "url": "https://en.wikipedia.org/wiki/Two_Sigma",
+                "excerpts": [
+                  "ndustry |[Hedge fund"
+                ]
+              }
+            ],
+            "reasoning": "The Wikipedia excerpt explicitly labels Two Sigma as a hedge fund, satisfying the hedge‑fund criteria, and no conflicting information is present.",
+            "confidence": "high"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AQR Capital Management",
+      "domain": "aqr.com",
+      "url": "https://www.aqr.com",
+      "description": "AQR Capital Management is an American investment management firm that offers hedge fund and other alternative investment strategies, headquartered in Greenwich, Connecticut on the U.S. East Coast.",
+      "match_status": "matched",
+      "output": {
+        "east_coast_location": {
+          "type": "match_condition",
+          "value": "Greenwich, CT, US",
+          "is_matched": true
+        },
+        "hedge_fund_type": {
+          "type": "match_condition",
+          "value": "",
+          "is_matched": true
+        }
+      },
+      "basis": [
+        {
+          "field": "east_coast_location",
+          "citations": [
+            {
+              "title": "Our Firm - AQR Capital Management",
+              "url": "https://www.aqr.com/Our-Firm/About-Us",
+              "excerpts": [
+                "AQR moves its headquarters to Greenwich, Connecticut."
+              ]
+            }
+          ],
+          "reasoning": "The citations from the company website and Wikipedia both state that AQR Capital Management’s headquarters are in Greenwich, Connecticut, United States. Connecticut is an East‑Coast state, so the entity matches the East‑Coast location requirement.",
+          "confidence": "high"
+        },
+        {
+          "field": "hedge_fund_type",
+          "citations": [],
+          "reasoning": "The Wikipedia excerpt lists the industry as “Hedge fund” and notes that AQR offers alternative investment strategies, while the company site describes it as an investment management firm that provides hedge‑fund and alternative strategies. These keywords satisfy the hedge‑fund type criteria.",
+          "confidence": "high"
+        }
+      ],
+      "raw_data": {
+        "candidate_id": "candidate_ae445cbf-3e64-4589-aedc-1818f9054aef",
+        "name": "AQR Capital Management",
+        "url": "https://www.aqr.com",
+        "description": "AQR Capital Management is an American investment management firm that offers hedge fund and other alternative investment strategies, headquartered in Greenwich, Connecticut on the U.S. East Coast.",
+        "match_status": "matched",
+        "output": {
+          "east_coast_location": {
+            "type": "match_condition",
+            "value": "Greenwich, CT, US",
+            "is_matched": true
+          },
+          "hedge_fund_type": {
+            "type": "match_condition",
+            "value": "",
+            "is_matched": true
+          }
+        },
+        "basis": [
+          {
+            "field": "east_coast_location",
+            "citations": [
+              {
+                "title": "Our Firm - AQR Capital Management",
+                "url": "https://www.aqr.com/Our-Firm/About-Us",
+                "excerpts": [
+                  "AQR moves its headquarters to Greenwich, Connecticut."
+                ]
+              }
+            ],
+            "reasoning": "The citations from the company website and Wikipedia both state that AQR Capital Management’s headquarters are in Greenwich, Connecticut, United States. Connecticut is an East‑Coast state, so the entity matches the East‑Coast location requirement.",
+            "confidence": "high"
+          },
+          {
+            "field": "hedge_fund_type",
+            "citations": [],
+            "reasoning": "The Wikipedia excerpt lists the industry as “Hedge fund” and notes that AQR offers alternative investment strategies, while the company site describes it as an investment management firm that provides hedge‑fund and alternative strategies. These keywords satisfy the hedge‑fund type criteria.",
+            "confidence": "high"
+          }
+        ]
+      }
+    }
+  ]
+}
