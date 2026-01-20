@@ -87,6 +87,15 @@ const FINANCE_TITLES = [
   'Partner',
   'Managing Director',
   'Principal',
+  'Head of AI',
+  'Head of Data',
+  'Chief Data Officer',
+  'CDO',
+  'Director of Data',
+  'VP Data',
+  'AI Engineer',
+  'Machine Learning Engineer',
+  'Data Scientist',
 ]
 
 // -------------------------
