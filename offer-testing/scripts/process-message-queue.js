@@ -38,10 +38,10 @@ const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || 'notifications@your
 
 // Sending window + safety limits (LinkedIn safety rules)
 const TIMEZONE = 'America/New_York';
-const BUSINESS_HOURS_START = 9; // 9 AM ET
+const BUSINESS_HOURS_START = 7; // 7 AM ET (earlier start)
 const BUSINESS_HOURS_END = 18; // 6 PM ET
-const SEND_DAYS = [1, 2, 3, 4, 5]; // Mon-Fri
-const MAX_MESSAGES_PER_DAY = 38; // Safety cap (<= 40/day)
+const SEND_DAYS = [0, 1, 2, 3, 4, 5, 6]; // All 7 days (including weekends)
+const MAX_MESSAGES_PER_DAY = 48; // Increased from 38 (safety cap <= 50/day)
 const JITTER_MIN_SECONDS = 15;
 const JITTER_MAX_SECONDS = 120;
 
