@@ -916,16 +916,17 @@ async function checkIfBecameFirstDegreeDuringCampaign(campaignId, contactId) {
 
 async function sendEmailMessage(message) {
   try {
-    const result = await unipileRequest('/email/send', 'POST', {
+    // Unipile API expects /emails endpoint with 'to' as array of objects
+    const result = await unipileRequest('/emails', 'POST', {
       account_id: message.account.unipile_account_id,
-      to: message.contact.email,
+      to: [{ identifier: message.contact.email }], // Array format required
       subject: message.subject,
       body: message.body,
     });
 
     return {
       success: true,
-      message_id: result.id
+      message_id: result.tracking_id || result.id || result.provider_id
     };
   } catch (error) {
     return {

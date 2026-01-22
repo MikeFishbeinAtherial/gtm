@@ -9,9 +9,9 @@
 
 ## Subject Line Options
 
-1. **"While Citadel runs LLMs on earnings calls, you're reading transcripts manually"** (RECOMMENDED)
-2. "The earnings call sentiment edge that 80% of Balyasny's staff use daily"
-3. "How LLMs predict earnings surprises better than consensus estimates"
+1. **"Citadel's earnings edge"** (RECOMMENDED)
+2. "AI earnings analysis"
+3. "AI beats consensus"
 
 ---
 
