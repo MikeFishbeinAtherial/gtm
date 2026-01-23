@@ -1,70 +1,53 @@
 # Email Copy: AI Earnings Edge Report - Version 2
 
 > **Campaign:** AI Earnings Edge Report  
-> **Version:** 2 (Use case-focused)  
-> **Length:** ~150 words  
-> **Goal:** Offer free report, start conversation
+> **Version:** 2 (DIY Guide - Portfolio-Wide Analysis)  
+> **Length:** ~85 words  
+> **Goal:** Get reply requesting guide
 
 ---
 
 ## Subject Line Options
 
-1. **"The earnings call sentiment edge that 80% of Balyasny's staff use daily"** (RECOMMENDED)
-2. "How LLMs predict earnings surprises better than consensus estimates"
-3. "The AI earnings analysis most funds don't know exists"
+1. "AI for earnings" (RECOMMENDED)
+2. "beat consensus estimates"
+3. "earnings call analysis"
 
 ---
 
 ## Email Body
 
-**Subject: The earnings call sentiment edge that 80% of Balyasny's staff use daily**
+Subject: AI for earnings
 
-Hi {FirstName},
+{FirstName},
 
-There's a sentiment signal in earnings calls that most funds are missing.
+Manual earnings call analysis takes hours per company.
 
-While you're reading transcripts looking for management tone changes, LLMs can extract this signal automatically - and it predicts earnings surprises better than consensus estimates.
+AI does it in seconds and catches alpha humans miss. Management tone, answer patterns, topic avoidance all signal surprises before they hit.
 
-**Here's what we've seen:**
-- Funds using AI sentiment analysis saw 8% alpha improvement in earnings-driven trades
-- One fund improved earnings surprise prediction accuracy by 23% using our LLM approach
-- The management tone in earnings calls - how they answer questions, what they emphasize - is a signal most funds aren't capturing
+A hedge fund improved earnings prediction accuracy 23% using AI analysis.
 
-I just finished a report called "The AI Earnings Edge Report" that shows:
-- The sentiment signal that beats consensus estimates
-- How LLM-extracted management tone predicts earnings surprises
-- Real examples from funds we've worked with
-- A playbook on leveraging AI for research without building a 50-person team
-
-We've helped 4 mid-market funds ($50M-$300M AUM) build AI earnings analysis systems. The report shares what we learned.
-
-Want it? Just reply and I'll send it over - no pitch, just insights.
+Want a free guide on how to get AI to do this on thousands of companies automatically, immediately after earnings? Just reply yes and I'll send it to you.
 
 Best,
-{YourName}
+Mike
 
 ---
 
 ## Personalization Notes
 
-- **{FirstName}:** Use their actual first name
-- **Reference competitive pressure:** If they've posted about competitive challenges: "I saw your post about LP expectations for AI capabilities..."
-- **Signal reference:** If they're hiring research roles: "I noticed {FundName} is building out research capabilities..."
-- **Earnings focus:** If they've posted about earnings analysis: "I saw your post about earnings research..."
+- {FirstName}: Contact's first name only
+- Keep everything else plain text, no bold
 
 ---
 
-## Follow-up (If No Response After 5 Days)
+## Follow-up (If No Response After 3 Days)
 
-**Subject: Re: The earnings call sentiment edge that 80% of Balyasny's staff use daily**
+Subject: Re: AI for earnings
 
-Hi {FirstName},
+Still happy to send the guide—shows you how to automate earnings analysis on thousands of companies.
 
-Following up on the AI earnings report.
-
-Quick question: Are you exploring AI for research to compete with larger funds? The report shows how sentiment analysis can improve earnings surprise predictions - one fund we worked with saw 23% improvement in accuracy.
-
-Still interested? Just reply and I'll send it over.
+Zero strings.
 
 Best,
-{YourName}
+Mike

@@ -108,8 +108,7 @@ async function main() {
   const linksToInsert = newContacts.map(contact => ({
     campaign_id: campaign.id,
     contact_id: contact.id,
-    status: 'queued',
-    sequence_step: 1
+    status: 'queued'
   }))
 
   const { error: insertError } = await supabase

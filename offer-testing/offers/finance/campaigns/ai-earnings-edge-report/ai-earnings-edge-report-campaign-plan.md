@@ -10,7 +10,7 @@
 
 **Campaign Name:** `ai-earnings-edge-report`
 
-**Goal:** Offer free "AI Earnings Edge Report" to hedge funds and PE firms to start conversations about AI-powered research capabilities. Focus on earnings call sentiment analysis that demonstrates how LLMs can extract insights faster than manual reading.
+**Goal:** Offer free "AI Earnings Edge Report" to hedge funds to start conversations about AI-powered research capabilities. Focus on earnings call sentiment analysis that demonstrates how LLMs can extract insights faster than manual reading.
 
 **Target Size:** 75-100 companies
 
@@ -25,15 +25,15 @@
 ## ICP (from Offer)
 
 ### Company Profile
-- **Size:** $10M-$500M AUM (Hedge Funds) or $100M-$2B AUM (PE Firms)
-- **Industry:** Hedge Funds, Alternative Investment Management, Private Equity
-- **Stage:** Established funds (not startups)
-- **Geography:** United States (primary), Global (secondary)
-- **Key Requirement:** Funds actively trading/managing capital or sourcing deals
+- **Size:** $10M-$500M AUM Hedge Funds
+- **Industry:** Hedge Funds, Alternative Investment Management
+- **Stage:** small to medium size funds
+- **Geography:** United States, east coast if possible
+- **Key Requirement:** Funds actively trading/managing capital 
 
 ### Buyer Profile
 - **Primary Buyers:** CIO/Head of Research, Partner/Managing Director
-- **Department:** Research, Investment, Deal Sourcing
+- **Department:** Research, Investment, portfolio management
 - **Seniority:** C-level, Head/VP level, Partner level
 
 ---
@@ -66,7 +66,7 @@
 - Goal is to start conversations, not pitch products
 - Free report demonstrates value without commitment
 - Builds trust and relationship before sales conversation
-- Non-technical buyers want insights, not technical how-tos
+- Non-technical buyers want insights, educational how-tos, not technical details
 
 **Value Proposition:**
 Free "AI Earnings Edge Report" showing:
@@ -77,7 +77,7 @@ Free "AI Earnings Edge Report" showing:
 
 **Social Proof (Created):**
 - "The earnings call sentiment edge that 80% of Balyasny's staff use daily"
-- "We've helped 4 mid-market funds ($50M-$300M AUM) build AI earnings analysis systems"
+- "We've helped 3 mid-market funds ($50M-$300M AUM) build AI earnings analysis systems"
 - "One fund improved earnings surprise prediction accuracy by 23% using our LLM approach"
 - "Funds using AI sentiment analysis saw 8% alpha improvement in earnings-driven trades"
 
@@ -94,9 +94,9 @@ Free "AI Earnings Edge Report" showing:
 - **Follow-up Message:** Brief report preview + value proposition
 
 ### Subject Lines (Pick 1-2 to A/B test)
-1. "While Citadel runs LLMs on earnings calls, you're reading transcripts manually"
-2. "The earnings call sentiment edge that 80% of Balyasny's staff use daily"
-3. "How LLMs predict earnings surprises better than consensus estimates"
+1. "earnings call edge"
+2. "Citadel's LLM advantage"
+3. "reading transcripts manually?"
 
 ---
 
