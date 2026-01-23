@@ -13,6 +13,7 @@ Portable skills for the GTM Offer Testing System. These skills work across Claud
 | `outreach-review` | 5 | Review and send personalized messages | Free |
 | `results-analysis` | 6 | Analyze performance and capture learnings | Free |
 | `cold-email-intro` | 3 | Write cold emails for free intro offers | Free |
+| `postgres-best-practices` | - | Supabase Postgres optimization & RLS patterns | Free |
 
 ## Workflow
 

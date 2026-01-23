@@ -9,42 +9,36 @@
 
 ## Subject Line Options
 
-1. **"earnings prep"** (RECOMMENDED)
-2. **"Reddit sentiment"**
+1. **"earnings prep"** 
+2. **"Reddit sentiment"** (RECOMMENDED)
 3. **"consumer signals"**
 
 ---
 
 ## Email Body
 
-**Subject: earnings prep**
+**Subject: Reddit sentiment**
+
+{FirstName},
 
 Most funds miss sentiment shifts before earnings season hits.
 
-Reddit, Glassdoor, forums light up 2-3 weeks before bad quarters. By the time earnings drop, you're late.
+Reddit, Glassdoor, etc light up 2-3 months before bad quarters. By the time earnings drop, you're late.
 
-We built AI that auto-analyzes this for consumer stocks. Panera analysts at Cowen caught sentiment collapse 18 days before the earnings miss.
+AI can auto-analyze this for public and private companies. Panera analysts caught sentiment collapse 18 days before the earnings miss using this approach.
 
-I'll send you a free sentiment report on any consumer brand you're watching this quarter. Takes me 20 minutes to run—shows sentiment scores, volume trends, key themes.
-
-Want one? Just reply with the ticker.
+Want a free guide on how to get AI to do sentiment analysis on your entire portfolio or research list? Just reply yes and I'll send it to you.
 
 Best,
-{YourName}
 
----
-
-## P.S. Addition (Optional)
-
-P.S. Here's an example: [link to sample report]
+Mike
 
 ---
 
 ## Personalization Notes
 
-- **{FirstName}:** Use their actual first name
-- **{Ticker}:** If you know they cover specific consumer stocks, mention in P.S.: "P.S. Happy to run Target or Chipotle if that's helpful"
-- **Timing:** Send 2-4 weeks before earnings season (Q4 earnings = mid Jan)
+- **{FirstName}:** Contact's first name (stored in Supabase `contacts.first_name`)
+- Plain text, no bold formatting
 
 ---
 

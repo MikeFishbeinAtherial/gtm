@@ -30,24 +30,8 @@ Vista's team caught franchisee disputes on a QSR deal that weren't in management
 Want a free guide on how to get AI to do this automatically for every deal you're evaluating? Just reply yes and I'll send it to you.
 
 Best,
+
 Mike
 
 ---
 
-## Personalization Notes
-
-- {FirstName}: Contact's first name only
-- Keep plain text, no bold
-
----
-
-## Follow-up (If No Response After 3 Days)
-
-Subject: Re: diligence shortcut
-
-Still happy to send the guide—shows you how to automate sentiment analysis for diligence.
-
-Zero strings.
-
-Best,
-Mike
