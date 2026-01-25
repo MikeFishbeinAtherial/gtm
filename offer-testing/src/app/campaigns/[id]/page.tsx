@@ -46,9 +46,17 @@ export default async function CampaignDetailPage({ params }: { params: { id: str
   }
 
   // Get campaign stats
-  const { data: statsData } = await supabaseAdmin.rpc('get_campaign_stats', {
-    campaign_id: params.id
-  }).catch(() => ({ data: null }))
+  // Try RPC function first, fall back to manual calculation if it doesn't exist
+  let statsData = null
+  try {
+    const result = await supabaseAdmin.rpc('get_campaign_stats', {
+      campaign_id: params.id
+    })
+    statsData = result.data
+  } catch (error) {
+    // RPC function doesn't exist or failed, will calculate manually
+    statsData = null
+  }
 
   // If RPC doesn't exist, calculate manually
   let stats: CampaignStats = {
