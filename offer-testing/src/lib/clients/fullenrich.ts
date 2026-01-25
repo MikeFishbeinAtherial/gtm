@@ -30,6 +30,7 @@ export interface FullenrichContact {
 
 export interface FullenrichBulkRequest {
   name: string
+  providers?: string[] // Optional - FullEnrich will use default providers if not specified
   datas: FullenrichContact[]
   webhook_url?: string
 }
