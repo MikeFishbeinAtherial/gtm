@@ -313,8 +313,11 @@ CREATE TABLE contacts (
         'unknown',    -- Haven't verified
         'valid',      -- Verified deliverable
         'invalid',    -- Bounced or catch-all
-        'risky'       -- Might bounce
+        'risky',      -- Might bounce
+        'failed'      -- Enrichment failed
     )),
+    email_verification_source TEXT, -- 'leadmagic', 'fullenrich', etc.
+    email_verified BOOLEAN GENERATED ALWAYS AS (email_status = 'valid') STORED,
     phone TEXT,
     
     -- LinkedIn
@@ -322,10 +325,19 @@ CREATE TABLE contacts (
     linkedin_id TEXT,  -- LinkedIn's internal ID if available
     connection_degree INTEGER CHECK (connection_degree IN (1, 2, 3)),
     
-    -- Relationship Status
+    -- Relationship Status (per-offer)
     already_contacted BOOLEAN DEFAULT FALSE,
     last_contacted_at TIMESTAMPTZ,
     contact_count INTEGER DEFAULT 0,  -- How many times we've reached out
+
+    -- Global outreach tracking (cross-offer)
+    global_last_contacted_at TIMESTAMPTZ,
+    global_contact_count INTEGER DEFAULT 0,
+    global_last_reply_at TIMESTAMPTZ,
+    global_status TEXT DEFAULT 'available' CHECK (global_status IN (
+        'available', 'cooling_off', 'do_not_contact', 'replied'
+    )),
+    eligible_for_outreach BOOLEAN DEFAULT TRUE,
     
     -- Scoring
     buyer_fit_score INTEGER CHECK (buyer_fit_score >= 1 AND buyer_fit_score <= 10),
@@ -369,6 +381,9 @@ CREATE INDEX idx_contacts_offer ON contacts(offer_id);
 CREATE INDEX idx_contacts_status ON contacts(status);
 CREATE INDEX idx_contacts_email ON contacts(email) WHERE email IS NOT NULL;
 CREATE INDEX idx_contacts_linkedin ON contacts(linkedin_url) WHERE linkedin_url IS NOT NULL;
+CREATE INDEX idx_contacts_global_status ON contacts(global_status);
+CREATE INDEX idx_contacts_global_last_contacted ON contacts(global_last_contacted_at);
+CREATE INDEX idx_contacts_eligible ON contacts(eligible_for_outreach) WHERE eligible_for_outreach = TRUE;
 ```
 
 ---
@@ -387,6 +402,7 @@ CREATE TABLE campaigns (
     
     -- Campaign Configuration
     channel TEXT NOT NULL CHECK (channel IN ('email', 'linkedin', 'multi')),
+    campaign_type TEXT DEFAULT 'cold_outreach' CHECK (campaign_type IN ('networking', 'cold_outreach')),
     account_id UUID REFERENCES accounts(id),  -- Which account to send from
     
     -- Targeting
@@ -403,6 +419,9 @@ CREATE TABLE campaigns (
     
     -- Sequence Configuration
     sequence_config JSONB,
+
+    -- Scheduling Configuration (per-campaign)
+    scheduling_config JSONB,
     /*
     {
         "steps": [
@@ -533,8 +552,10 @@ CREATE TABLE messages (
     
     -- Relationships
     campaign_contact_id UUID NOT NULL REFERENCES campaign_contacts(id) ON DELETE CASCADE,
+    campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
     contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
     account_id UUID NOT NULL REFERENCES accounts(id),
+    send_queue_id UUID REFERENCES send_queue(id) ON DELETE SET NULL,
     
     -- Message Details
     channel TEXT NOT NULL CHECK (channel IN (
@@ -542,6 +563,12 @@ CREATE TABLE messages (
         'linkedin_connect',
         'linkedin_dm',
         'linkedin_inmail'
+    )),
+    action_type TEXT CHECK (action_type IN (
+        'connection_request',
+        'message',
+        'email',
+        'inmail'
     )),
     sequence_step INTEGER NOT NULL,
     
@@ -586,8 +613,10 @@ CREATE TABLE messages (
 
 -- Indexes
 CREATE INDEX idx_messages_campaign_contact ON messages(campaign_contact_id);
+CREATE INDEX idx_messages_campaign ON messages(campaign_id);
 CREATE INDEX idx_messages_contact ON messages(contact_id);
 CREATE INDEX idx_messages_account ON messages(account_id);
+CREATE INDEX idx_messages_send_queue ON messages(send_queue_id);
 CREATE INDEX idx_messages_status ON messages(status);
 CREATE INDEX idx_messages_scheduled ON messages(scheduled_at) WHERE status = 'pending';
 ```
@@ -614,6 +643,7 @@ CREATE TABLE accounts (
     -- Integration
     unipile_account_id TEXT,  -- ID in Unipile
     provider TEXT,  -- 'gmail', 'outlook', 'linkedin'
+    rotation_set TEXT CHECK (rotation_set IN ('odd', 'even', 'burner')),
     
     -- Status
     status TEXT DEFAULT 'active' CHECK (status IN (
@@ -648,7 +678,9 @@ CREATE TABLE accounts (
     total_replies INTEGER DEFAULT 0,
     
     -- Health Metrics
+    health_score INTEGER DEFAULT 100,
     bounce_rate DECIMAL(5,2),
+    spam_rate DECIMAL(5,2),
     reply_rate DECIMAL(5,2),
     last_health_check TIMESTAMPTZ,
     
@@ -751,8 +783,8 @@ CREATE TABLE tools (
 
 -- Pre-populate with our tools
 INSERT INTO tools (name, type, api_docs_url) VALUES
-    ('parallel', 'company_search', 'https://docs.parallel.ai/'),
-    ('parallel', 'people_search', 'https://docs.parallel.ai/'),
+    ('parallel_companies', 'company_search', 'https://docs.parallel.ai/'),
+    ('parallel_people', 'people_search', 'https://docs.parallel.ai/'),
     ('theirstack', 'company_search', 'https://theirstack.com/docs'),
     ('exa', 'company_search', 'https://docs.exa.ai/'),
     ('sumble', 'enrichment', 'https://docs.sumble.com/'),
@@ -1025,7 +1057,7 @@ SELECT * FROM account_health;
 SELECT * FROM campaign_performance WHERE offer_id = 'xxx';
 
 -- Get today's send queue
-SELECT * FROM todays_queue WHERE account_can_send = TRUE LIMIT 20;
+SELECT * FROM todays_schedule LIMIT 20;
 
 -- Check if we've contacted this person before (across all offers)
 SELECT * FROM contacts 
@@ -1042,4 +1074,261 @@ FROM tool_usage tu
 JOIN tools t ON tu.tool_id = t.id
 WHERE tu.created_at >= CURRENT_DATE - INTERVAL '7 days'
 GROUP BY t.name;
+```
+
+---
+
+## Queue + Global Tracking Additions
+
+These tables and views power the send queue, global 60-day rule, and visual dashboards.
+
+### Message Templates (Optional but recommended)
+```sql
+CREATE TABLE message_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    offer_id UUID NOT NULL REFERENCES offers(id) ON DELETE CASCADE,
+    campaign_id UUID REFERENCES campaigns(id) ON DELETE SET NULL,
+    name TEXT NOT NULL,
+    channel TEXT NOT NULL CHECK (channel IN ('email', 'linkedin_connect', 'linkedin_dm', 'linkedin_inmail')),
+    sequence_step INTEGER,
+    template_key TEXT,
+    subject TEXT,
+    body TEXT NOT NULL,
+    status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'approved', 'archived')),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Send Queue (Scheduled Messages)
+```sql
+CREATE TABLE send_queue (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+    campaign_contact_id UUID REFERENCES campaign_contacts(id),
+    contact_id UUID NOT NULL REFERENCES contacts(id),
+    account_id UUID REFERENCES accounts(id),
+    channel TEXT NOT NULL CHECK (channel IN ('email', 'linkedin_connect', 'linkedin_dm', 'linkedin_inmail')),
+    sequence_step INTEGER,
+    subject TEXT,
+    body TEXT NOT NULL,
+    scheduled_for TIMESTAMPTZ NOT NULL,
+    priority INTEGER DEFAULT 5 CHECK (priority BETWEEN 1 AND 10),
+    status TEXT DEFAULT 'pending' CHECK (status IN (
+        'pending', 'scheduled', 'processing', 'sent', 'delivered',
+        'failed', 'bounced', 'cancelled', 'skipped'
+    )),
+    attempts INTEGER DEFAULT 0,
+    max_attempts INTEGER DEFAULT 3,
+    last_attempt_at TIMESTAMPTZ,
+    last_error TEXT,
+    external_message_id TEXT,
+    sent_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Message Events (Detailed Outcomes)
+```sql
+CREATE TABLE message_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    send_queue_id UUID NOT NULL REFERENCES send_queue(id) ON DELETE CASCADE,
+    contact_id UUID NOT NULL REFERENCES contacts(id),
+    campaign_id UUID NOT NULL REFERENCES campaigns(id),
+    account_id UUID REFERENCES accounts(id),
+    event_type TEXT NOT NULL CHECK (event_type IN (
+        'queued', 'scheduled', 'sent', 'delivered', 'opened', 'clicked',
+        'replied', 'bounced', 'spam', 'unsubscribed', 'failed', 'skipped'
+    )),
+    event_data JSONB DEFAULT '{}',
+    reply_text TEXT,
+    reply_sentiment TEXT CHECK (reply_sentiment IN (
+        'positive', 'negative', 'neutral', 'question', 'ooo'
+    )),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Outreach History (Global 60-Day Rule)
+```sql
+CREATE TABLE outreach_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    contact_email TEXT,
+    contact_linkedin_url TEXT,
+    contact_id UUID REFERENCES contacts(id),
+    campaign_id UUID REFERENCES campaigns(id),
+    offer_id UUID REFERENCES offers(id),
+    account_id UUID REFERENCES accounts(id),
+    send_queue_id UUID REFERENCES send_queue(id) ON DELETE SET NULL,
+    channel TEXT NOT NULL CHECK (channel IN ('email', 'linkedin_connect', 'linkedin_dm', 'linkedin_inmail')),
+    message_subject TEXT,
+    message_body TEXT,
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    status TEXT DEFAULT 'sent' CHECK (status IN ('sent', 'delivered', 'bounced', 'replied', 'spam', 'failed')),
+    replied_at TIMESTAMPTZ,
+    reply_sentiment TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Pipeline Tracking (Multi-Step Runner)
+```sql
+CREATE TABLE pipeline_runs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    offer_id UUID REFERENCES offers(id),
+    campaign_id UUID REFERENCES campaigns(id),
+    steps JSONB NOT NULL,
+    input_params JSONB DEFAULT '{}',
+    status TEXT DEFAULT 'running' CHECK (status IN ('running', 'completed', 'failed', 'cancelled')),
+    error_message TEXT,
+    output_summary JSONB DEFAULT '{}',
+    started_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
+);
+
+CREATE TABLE pipeline_steps (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    pipeline_run_id UUID NOT NULL REFERENCES pipeline_runs(id) ON DELETE CASCADE,
+    step_name TEXT NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'completed', 'failed', 'skipped')),
+    step_output JSONB DEFAULT '{}',
+    error_message TEXT,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ
+);
+```
+
+### Views for the Dashboard
+```sql
+-- Clay-style leads table
+CREATE VIEW leads_for_review AS
+SELECT
+    c.id as contact_id,
+    c.first_name,
+    c.last_name,
+    c.full_name,
+    c.email,
+    c.email_status,
+    c.email_verified,
+    c.email_verification_source,
+    c.linkedin_url,
+    c.title,
+    c.connection_degree,
+    c.global_status,
+    c.global_last_contacted_at,
+    c.global_contact_count,
+    c.eligible_for_outreach,
+    co.id as company_id,
+    co.name as company_name,
+    co.domain,
+    co.size,
+    co.industry,
+    co.signals,
+    co.fit_score,
+    co.priority as company_priority,
+    co.source_tool,
+    cc.id as campaign_contact_id,
+    cc.status as campaign_status,
+    cc.current_step,
+    camp.id as campaign_id,
+    camp.name as campaign_name,
+    camp.campaign_type,
+    sq.id as queue_id,
+    sq.scheduled_for,
+    sq.status as queue_status,
+    sq.channel,
+    a.name as sending_account,
+    a.health_score as account_health
+FROM contacts c
+JOIN companies co ON c.company_id = co.id
+LEFT JOIN campaign_contacts cc ON cc.contact_id = c.id
+LEFT JOIN campaigns camp ON cc.campaign_id = camp.id
+LEFT JOIN send_queue sq ON sq.contact_id = c.id AND sq.status IN ('pending', 'scheduled')
+LEFT JOIN accounts a ON sq.account_id = a.id;
+
+-- Today's schedule
+CREATE VIEW todays_schedule AS
+SELECT
+    sq.*,
+    c.full_name as contact_name,
+    c.email as contact_email,
+    co.name as company_name,
+    camp.name as campaign_name,
+    a.name as account_name,
+    a.health_score
+FROM send_queue sq
+JOIN contacts c ON sq.contact_id = c.id
+JOIN companies co ON c.company_id = co.id
+JOIN campaigns camp ON sq.campaign_id = camp.id
+LEFT JOIN accounts a ON sq.account_id = a.id
+WHERE sq.scheduled_for::date = CURRENT_DATE
+AND sq.status IN ('pending', 'scheduled')
+ORDER BY sq.scheduled_for ASC;
+
+-- Account capacity
+CREATE VIEW account_capacity AS
+SELECT
+    a.id,
+    a.name,
+    a.type,
+    a.health_score,
+    a.status,
+    a.daily_limit_emails,
+    a.daily_limit_connections,
+    a.daily_limit_messages,
+    COALESCE(a.today_emails, 0) as today_emails,
+    COALESCE(a.today_connections, 0) as today_connections,
+    COALESCE(a.today_messages, 0) as today_messages,
+    a.daily_limit_emails - COALESCE(a.today_emails, 0) as emails_remaining,
+    a.daily_limit_connections - COALESCE(a.today_connections, 0) as connections_remaining,
+    a.daily_limit_messages - COALESCE(a.today_messages, 0) as messages_remaining,
+    CASE
+        WHEN a.status != 'active' THEN FALSE
+        WHEN COALESCE(a.health_score, 100) < 30 THEN FALSE
+        WHEN a.type = 'email' AND COALESCE(a.today_emails, 0) >= a.daily_limit_emails THEN FALSE
+        WHEN a.type = 'linkedin' AND COALESCE(a.today_connections, 0) >= a.daily_limit_connections THEN FALSE
+        ELSE TRUE
+    END as can_send_now
+FROM accounts a;
+
+-- Unified activity feed (scheduled + sent)
+CREATE VIEW activity_feed AS
+SELECT
+    'scheduled' as activity_type,
+    sq.id as item_id,
+    sq.scheduled_for as occurred_at,
+    sq.status,
+    sq.channel,
+    c.full_name as contact_name,
+    c.email as contact_email,
+    c.linkedin_url as contact_linkedin_url,
+    co.name as company_name,
+    camp.name as campaign_name,
+    a.name as account_name
+FROM send_queue sq
+LEFT JOIN contacts c ON sq.contact_id = c.id
+LEFT JOIN companies co ON c.company_id = co.id
+LEFT JOIN campaigns camp ON sq.campaign_id = camp.id
+LEFT JOIN accounts a ON sq.account_id = a.id
+
+UNION ALL
+
+SELECT
+    'sent' as activity_type,
+    oh.id as item_id,
+    oh.sent_at as occurred_at,
+    oh.status,
+    oh.channel,
+    c.full_name as contact_name,
+    COALESCE(oh.contact_email, c.email) as contact_email,
+    COALESCE(oh.contact_linkedin_url, c.linkedin_url) as contact_linkedin_url,
+    co.name as company_name,
+    camp.name as campaign_name,
+    a.name as account_name
+FROM outreach_history oh
+LEFT JOIN contacts c ON oh.contact_id = c.id
+LEFT JOIN companies co ON c.company_id = co.id
+LEFT JOIN campaigns camp ON oh.campaign_id = camp.id
+LEFT JOIN accounts a ON oh.account_id = a.id;
 ```

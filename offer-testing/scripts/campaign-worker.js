@@ -71,8 +71,8 @@ if (!CAMPAIGN_NAME) {
 
 // Safety settings (LinkedIn safety rules)
 const MAX_MESSAGES_PER_DAY = 38; // Safety cap (<= 40/day)
-const MIN_DELAY_MINUTES = 2;
-const MAX_DELAY_MINUTES = 5;
+const MIN_DELAY_MINUTES = 6;
+const MAX_DELAY_MINUTES = 16;
 const BUSINESS_HOURS_START = 9; // 9 AM ET
 const BUSINESS_HOURS_END = 18; // 6 PM ET
 const TIMEZONE = 'America/New_York';
@@ -516,15 +516,60 @@ async function runWorker() {
 
       if (sendResult.success) {
         console.log('   ✅ Sent successfully');
-        
+        const sentAt = new Date().toISOString();
+
+        // =========================================================================
+        // CRITICAL: UPDATE STATUS FROM 'sending' -> 'sent'
+        // =========================================================================
+        // This is what prevents resending the same message.
+        // 
+        // HOW IT WORKS:
+        // 1. Before sending: status is 'pending' -> locked to 'sending'
+        // 2. After sending: status changes to 'sent' (or 'failed')
+        // 3. Query only fetches WHERE status = 'pending', so sent messages are skipped
+        // 4. Atomic lock (.eq('status', 'sending')) ensures only this process updates it
+        // =========================================================================
         await supabase
           .from('networking_outreach')
           .update({
-            status: 'sent',
-            sent_at: new Date().toISOString()
+            status: 'sent',  // <- This prevents resending (only 'pending' are queried)
+            sent_at: sentAt
           })
           .eq('id', outreach.id)
           .eq('status', 'sending');  // Only update if we still hold the lock
+
+        // Track global outreach history (LinkedIn networking)
+        // This enables the 60-day global rule to prevent duplicate outreach across campaigns
+        // Try to find matching contact by LinkedIn URL for better tracking
+        let contactId = null;
+        if (connection.linkedin_url) {
+          const { data: matchingContact } = await supabase
+            .from('contacts')
+            .select('id')
+            .eq('linkedin_url', connection.linkedin_url)
+            .limit(1)
+            .single();
+          if (matchingContact) {
+            contactId = matchingContact.id;
+          }
+        }
+
+        await supabase
+          .from('outreach_history')
+          .insert({
+            contact_email: null,
+            contact_linkedin_url: connection.linkedin_url || null,
+            contact_id: contactId, // Link to contacts table if found
+            campaign_id: null, // networking_campaign_batches is separate from campaigns table
+            offer_id: null,
+            account_id: null,
+            send_queue_id: null, // Networking campaigns use networking_outreach, not send_queue
+            channel: 'linkedin_dm',
+            message_subject: null,
+            message_body: outreach.personalized_message,
+            sent_at: sentAt,
+            status: 'sent'
+          });
 
         await supabase
           .from('networking_campaign_batches')

@@ -13,7 +13,7 @@ export type ConnectionDegree = 1 | 2 | 3
 
 export type Seniority = 'c_level' | 'vp' | 'director' | 'manager' | 'individual'
 
-export type EmailStatus = 'unknown' | 'valid' | 'invalid' | 'risky'
+export type EmailStatus = 'unknown' | 'valid' | 'invalid' | 'risky' | 'failed'
 
 export type ContactPriority = 'high' | 'medium' | 'low'
 
@@ -49,6 +49,8 @@ export interface Contact {
   // Contact info
   email: string | null
   email_status: EmailStatus | null
+  email_verification_source: string | null
+  email_verified: boolean | null
   phone: string | null
   
   // LinkedIn
@@ -60,6 +62,13 @@ export interface Contact {
   already_contacted: boolean
   last_contacted_at: string | null
   contact_count: number
+
+  // Global outreach tracking (cross-offer)
+  global_last_contacted_at: string | null
+  global_contact_count: number
+  global_last_reply_at: string | null
+  global_status: 'available' | 'cooling_off' | 'do_not_contact' | 'replied'
+  eligible_for_outreach: boolean
   
   // Scoring
   buyer_fit_score: number | null   // 1-10
@@ -102,6 +111,7 @@ export interface CreateContactInput {
   seniority?: Seniority
   email?: string
   email_status?: EmailStatus
+  email_verification_source?: string
   phone?: string
   linkedin_url?: string
   linkedin_id?: string
@@ -122,6 +132,7 @@ export interface UpdateContactInput {
   seniority?: Seniority
   email?: string
   email_status?: EmailStatus
+  email_verification_source?: string
   phone?: string
   linkedin_url?: string
   linkedin_id?: string
@@ -129,6 +140,11 @@ export interface UpdateContactInput {
   already_contacted?: boolean
   last_contacted_at?: string
   contact_count?: number
+  global_last_contacted_at?: string
+  global_contact_count?: number
+  global_last_reply_at?: string
+  global_status?: 'available' | 'cooling_off' | 'do_not_contact' | 'replied'
+  eligible_for_outreach?: boolean
   buyer_fit_score?: number
   priority?: ContactPriority
   status?: ContactStatus

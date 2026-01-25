@@ -189,8 +189,9 @@ async function processDueMessages() {
         .limit(1)
         .maybeSingle(), // Use maybeSingle() instead of single() to handle no results
       supabase
-        .from('messages')
+        .from('send_queue')
         .select('sent_at')
+        .eq('status', 'sent')
         .not('sent_at', 'is', null)
         .order('sent_at', { ascending: false })
         .limit(1)
@@ -209,10 +210,10 @@ async function processDueMessages() {
       }
     }
 
-    // Check spacing (5 minutes minimum between ANY message sends)
+    // Check spacing (6 minutes minimum between ANY message sends)
     if (lastSentTime) {
       const timeSinceLastSend = Date.now() - lastSentTime.getTime();
-      const minIntervalMs = 5 * 60 * 1000; // 5 minutes minimum
+      const minIntervalMs = 6 * 60 * 1000; // 6 minutes minimum
 
       if (timeSinceLastSend < minIntervalMs) {
         const waitMinutes = Math.ceil((minIntervalMs - timeSinceLastSend) / 60000);
@@ -231,38 +232,32 @@ async function processDueMessages() {
       return;
     }
 
-    // Then check regular messages table (only if no networking message was sent)
-    // Note: messages -> campaign_contacts -> campaigns (not direct relationship)
-    const { data: dueMessages, error } = await supabase
-      .from('messages')
-      .select(`
-        *,
-        contact:contacts(*),
-        campaign_contact:campaign_contacts(*, campaign:campaigns(*)),
-        account:accounts(*)
-      `)
-      .eq('status', 'pending')
-      .lte('scheduled_at', new Date().toISOString())
-      .order('scheduled_at')
-      .limit(1); // Safety cap - only 1 message per cron run
+    // Then check the send_queue (only if no networking message was sent).
+    // Railway cron calls this script, and the send_queue is the single source of truth for what to send next.
+    // We claim exactly one row via claim_send_queue_item() to avoid duplicates (SKIP LOCKED prevents two workers from grabbing the same item).
+    const { data: claimedItems, error } = await supabase
+      .rpc('claim_send_queue_item');
 
     if (error) {
-      console.error('❌ Database query error:', error);
+      console.error('❌ Failed to claim send_queue item:', error);
       return;
     }
 
-    if (!dueMessages || dueMessages.length === 0) {
-      console.log('✅ No regular messages due at this time');
+    if (!claimedItems || claimedItems.length === 0) {
+      console.log('✅ No send_queue items due at this time');
       return;
     }
 
-    console.log(`📤 Processing ${dueMessages.length} due message(s)`);
+    const queueItem = claimedItems[0];
+    const fullQueueItem = await fetchQueueItemWithRelations(queueItem.id);
 
-    // Process each message
-    for (const message of dueMessages) {
-      await processMessage(message);
-      // No sleep needed - we only process 1 per run, spacing handled by cron frequency
+    if (!fullQueueItem) {
+      console.warn(`⚠️  Could not load related data for send_queue ${queueItem.id}`);
+      return;
     }
+
+    console.log(`📤 Processing send_queue item ${fullQueueItem.id}`);
+    await processQueueItem(fullQueueItem);
 
   } catch (error) {
     console.error('❌ Error in processDueMessages:', error);
@@ -670,6 +665,40 @@ The cron job will automatically resume processing once reconnected.`,
         }
       }
 
+      // Track global outreach history (LinkedIn networking)
+      // This enables the 60-day global rule to prevent duplicate outreach across campaigns
+      // Try to find matching contact by LinkedIn URL for better tracking
+      let contactId = null;
+      if (connection.linkedin_url) {
+        const { data: matchingContact } = await supabase
+          .from('contacts')
+          .select('id')
+          .eq('linkedin_url', connection.linkedin_url)
+          .limit(1)
+          .single();
+        if (matchingContact) {
+          contactId = matchingContact.id;
+        }
+      }
+
+      const sentAt = new Date().toISOString();
+      await supabase
+        .from('outreach_history')
+        .insert({
+          contact_email: null,
+          contact_linkedin_url: connection.linkedin_url || null,
+          contact_id: contactId, // Link to contacts table if found
+          campaign_id: null, // networking_campaign_batches is separate from campaigns table
+          offer_id: null,
+          account_id: null,
+          send_queue_id: null, // Networking campaigns use networking_outreach, not send_queue
+          channel: 'linkedin_dm',
+          message_subject: null,
+          message_body: outreach.personalized_message,
+          sent_at: sentAt,
+          status: 'sent'
+        });
+
       await logSendAudit({
         outreach,
         connection,
@@ -747,79 +776,268 @@ The cron job will automatically resume processing once reconnected.`,
   }
 }
 
-async function processMessage(message) {
+async function processQueueItem(queueItem) {
   const startTime = Date.now();
 
   try {
-    console.log(`📤 Processing message ${message.id} (${message.channel})`);
+    console.log(`📤 Processing send_queue item ${queueItem.id} (${queueItem.channel})`);
+
+    // Safety: global 60-day rule + do-not-contact
+    const eligibility = await checkQueueEligibility(queueItem);
+    if (!eligibility.canSend) {
+      await markQueueItemSkipped(queueItem, eligibility.reason);
+      return;
+    }
 
     // Route to appropriate sending method
     let sendResult;
 
-    if (message.channel === 'linkedin') {
-      sendResult = await sendLinkedInMessage(message);
-    } else if (message.channel === 'email') {
-      sendResult = await sendEmailMessage(message);
+    if (queueItem.channel.startsWith('linkedin')) {
+      sendResult = await sendLinkedInMessage(queueItem);
+    } else if (queueItem.channel === 'email') {
+      sendResult = await sendEmailMessage(queueItem);
     } else {
-      throw new Error(`Unsupported channel: ${message.channel}`);
+      throw new Error(`Unsupported channel: ${queueItem.channel}`);
     }
 
     const processingTime = Date.now() - startTime;
+    const sentAt = new Date().toISOString();
 
-    // Update message status in Supabase
-    const updateData = sendResult.success
+    // =========================================================================
+    // CRITICAL: UPDATE LEAD STATUS AFTER SENDING
+    // =========================================================================
+    // This is the primary mechanism that prevents resending the same message.
+    // 
+    // HOW IT WORKS:
+    // 1. send_queue.status changes from 'pending' -> 'sent' or 'failed'
+    // 2. claim_send_queue_item() only selects WHERE status = 'pending'
+    // 3. Therefore, a message can NEVER be sent twice
+    //
+    // ADDITIONAL SAFETY LAYERS:
+    // - message_events: Logs every status change for audit trail
+    // - outreach_history: Enables 60-day global rule (prevents contacting same person)
+    // - Trigger on outreach_history updates contacts.global_last_contacted_at
+    // =========================================================================
+    const queueUpdate = sendResult.success
       ? {
-          status: 'sent',
-          sent_at: new Date().toISOString(),
-          external_id: sendResult.message_id
+          status: 'sent',  // <- This prevents resending (cron only queries status='pending')
+          sent_at: sentAt,
+          external_message_id: sendResult.message_id,
+          last_error: null
         }
       : {
-          status: 'failed',
-          error_message: sendResult.error
+          status: 'failed', // <- Failed messages don't resend unless manually retried
+          last_error: sendResult.error
         };
 
     await supabase
-      .from('messages')
-      .update(updateData)
-      .eq('id', message.id);
+      .from('send_queue')
+      .update(queueUpdate)
+      .eq('id', queueItem.id);
+
+    // Log status change event (audit trail for debugging and analytics)
+    await supabase
+      .from('message_events')
+      .insert({
+        send_queue_id: queueItem.id,
+        contact_id: queueItem.contact_id,
+        campaign_id: queueItem.campaign_id,
+        account_id: queueItem.account_id,
+        event_type: sendResult.success ? 'sent' : 'failed',
+        event_data: { latency_ms: processingTime }
+      });
+
+    // Track outreach history for global 60-day deduplication rule
+    await supabase
+      .from('outreach_history')
+      .insert({
+        contact_email: queueItem.contact?.email || null,
+        contact_linkedin_url: queueItem.contact?.linkedin_url || null,
+        contact_id: queueItem.contact_id,
+        campaign_id: queueItem.campaign_id,
+        offer_id: queueItem.campaign?.offer_id || null,
+        account_id: queueItem.account_id,
+        send_queue_id: queueItem.id,
+        channel: queueItem.channel,
+        message_subject: queueItem.subject || null,
+        message_body: queueItem.body,
+        sent_at: sentAt,
+        status: sendResult.success ? 'sent' : 'failed'
+      });
+
+    // Insert sent message (history table) when we have a campaign_contact
+    if (queueItem.campaign_contact_id) {
+      await supabase
+        .from('messages')
+        .insert({
+          campaign_contact_id: queueItem.campaign_contact_id,
+          campaign_id: queueItem.campaign_id,
+          contact_id: queueItem.contact_id,
+          account_id: queueItem.account_id,
+          send_queue_id: queueItem.id,
+          channel: queueItem.channel,
+          action_type: getActionType(queueItem),
+          sequence_step: queueItem.sequence_step || 1,
+          subject: queueItem.subject,
+          body: queueItem.body,
+          status: sendResult.success ? 'sent' : 'failed',
+          error_message: sendResult.error || null,
+          sent_at: sendResult.success ? sentAt : null,
+          scheduled_at: queueItem.scheduled_for
+        });
+    }
 
     // Log activity for rate limiting
     await supabase
       .from('account_activity')
       .insert({
-        account_id: message.account_id,
-        message_id: message.id,
-        contact_id: message.contact_id,
-        action_type: getActionType(message),
+        account_id: queueItem.account_id,
+        message_id: null,
+        contact_id: queueItem.contact_id,
+        action_type: getActionType(queueItem),
         status: sendResult.success ? 'success' : 'failed',
         error_message: sendResult.error,
-        created_at: new Date().toISOString()
+        created_at: sentAt
       });
 
     // Send email notification via Resend
-    await notifyViaEmail(message, sendResult);
+    await notifyViaEmail(queueItem, sendResult);
 
-    console.log(`${sendResult.success ? '✅' : '❌'} Message ${message.id} ${sendResult.success ? 'sent' : 'failed'} (${formatDuration(processingTime)})`);
+    console.log(`${sendResult.success ? '✅' : '❌'} Queue item ${queueItem.id} ${sendResult.success ? 'sent' : 'failed'} (${formatDuration(processingTime)})`);
 
   } catch (error) {
-    console.error(`❌ Failed to process message ${message.id}:`, error);
+    console.error(`❌ Failed to process send_queue item ${queueItem.id}:`, error);
 
     // Mark as failed
     await supabase
-      .from('messages')
+      .from('send_queue')
       .update({
         status: 'failed',
-        error_message: error.message
+        last_error: error.message
       })
-      .eq('id', message.id);
+      .eq('id', queueItem.id);
   }
+}
+
+async function fetchQueueItemWithRelations(queueId) {
+  const { data, error } = await supabase
+    .from('send_queue')
+    .select(`
+      *,
+      contact:contacts(*),
+      campaign:campaigns(*),
+      campaign_contact:campaign_contacts(*),
+      account:accounts(*)
+    `)
+    .eq('id', queueId)
+    .single();
+
+  if (error) {
+    console.warn(`⚠️  Failed to fetch send_queue ${queueId}:`, error.message);
+    return null;
+  }
+
+  return data;
+}
+
+async function checkQueueEligibility(queueItem) {
+  const contact = queueItem.contact;
+
+  if (!contact) {
+    return { canSend: false, reason: 'Missing contact data' };
+  }
+
+  if (contact.global_status === 'do_not_contact') {
+    return { canSend: false, reason: 'Contact is marked do_not_contact' };
+  }
+
+  if (contact.eligible_for_outreach === false) {
+    return { canSend: false, reason: 'Contact is in cooling-off period' };
+  }
+
+  if (queueItem.channel === 'email' && contact.email_status !== 'valid') {
+    return { canSend: false, reason: 'Email is not verified' };
+  }
+
+  // 60-day rule check (email or LinkedIn)
+  const lastOutreach = await getLastOutreach(queueItem);
+  if (lastOutreach?.sent_at) {
+    const lastSent = new Date(lastOutreach.sent_at);
+    const daysSince = Math.floor((Date.now() - lastSent.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysSince < 60) {
+      return { canSend: false, reason: `Contacted ${daysSince} days ago (60-day rule)` };
+    }
+  }
+
+  return { canSend: true, reason: null };
+}
+
+async function getLastOutreach(queueItem) {
+  const contact = queueItem.contact;
+
+  if (!contact) {
+    return null;
+  }
+
+  const query = supabase
+    .from('outreach_history')
+    .select('sent_at')
+    .order('sent_at', { ascending: false })
+    .limit(1);
+
+  if (queueItem.channel === 'email' && contact.email) {
+    const { data } = await query.eq('contact_email', contact.email);
+    return data?.[0] || null;
+  }
+
+  if (contact.linkedin_url) {
+    const { data } = await query.eq('contact_linkedin_url', contact.linkedin_url);
+    return data?.[0] || null;
+  }
+
+  return null;
+}
+
+async function markQueueItemSkipped(queueItem, reason) {
+  await supabase
+    .from('send_queue')
+    .update({
+      status: 'skipped',
+      last_error: reason
+    })
+    .eq('id', queueItem.id);
+
+  await supabase
+    .from('message_events')
+    .insert({
+      send_queue_id: queueItem.id,
+      contact_id: queueItem.contact_id,
+      campaign_id: queueItem.campaign_id,
+      account_id: queueItem.account_id,
+      event_type: 'skipped',
+      event_data: { reason }
+    });
 }
 
 async function sendLinkedInMessage(message) {
   const contact = message.contact;
-  // Access campaign through campaign_contact relationship
-  const campaign = message.campaign_contact?.campaign;
+  if (!message.account?.unipile_account_id) {
+    return {
+      success: false,
+      error: 'Missing Unipile account ID'
+    };
+  }
+
+  if (!contact?.linkedin_url || !contact?.linkedin_id) {
+    return {
+      success: false,
+      error: 'Missing LinkedIn identifiers'
+    };
+  }
+  // Access campaign directly or through campaign_contact relationship
+  const campaign = message.campaign || message.campaign_contact?.campaign;
   const campaignType = campaign?.campaign_type || 'cold_outreach';
+  const queueChannel = message.channel;
 
   try {
     // Check current connection status via Unipile
@@ -837,42 +1055,29 @@ async function sendLinkedInMessage(message) {
     }
 
     // For cold outreach: complex 1st degree logic
-    if (campaignType === 'cold_outreach') {
-      if (status.connection_degree === 1) {
-        // Check if they became 1st degree during this campaign
-        // (i.e., we sent them a connection request that they accepted)
-        const becameFirstDegree = await checkIfBecameFirstDegreeDuringCampaign(
-          campaign?.id,
-          contact.id
-        );
+    if (campaignType === 'cold_outreach' && status.connection_degree === 1) {
+      const becameFirstDegree = await checkIfBecameFirstDegreeDuringCampaign(
+        campaign?.id,
+        contact.id
+      );
 
-        if (!becameFirstDegree) {
-          // They were already 1st degree before campaign started - skip
-          return {
-            success: false,
-            error: 'Cannot cold message existing 1st degree connections'
-          };
-        }
-        // They became 1st degree during campaign - allow messaging
+      if (!becameFirstDegree) {
+        return {
+          success: false,
+          error: 'Cannot cold message existing 1st degree connections'
+        };
       }
     }
-    // Networking campaigns: Allow all 1st degree connections
 
-    // Choose sending method based on relationship
-    if (status.already_contacted || status.connection_degree === 1) {
-      // Send DM to existing conversation or 1st degree connection
-      const result = await unipileRequest('/chats', 'POST', {
-        account_id: message.account.unipile_account_id,
-        attendees_ids: [contact.linkedin_id],
-        text: message.body,
-      });
+    // Route based on requested LinkedIn channel
+    if (queueChannel === 'linkedin_connect') {
+      if (status.connection_degree === 1) {
+        return {
+          success: false,
+          error: 'Already connected (skip connection request)'
+        };
+      }
 
-      return {
-        success: true,
-        message_id: result.id
-      };
-    } else {
-      // Send connection request with message to 2nd/3rd degree
       const result = await unipileRequest('/linkedin/connect', 'POST', {
         account_id: message.account.unipile_account_id,
         recipient_url: contact.linkedin_url,
@@ -885,6 +1090,25 @@ async function sendLinkedInMessage(message) {
       };
     }
 
+    if (status.connection_degree !== 1 && !status.already_contacted) {
+      return {
+        success: false,
+        error: 'Not connected - cannot send DM'
+      };
+    }
+
+    // Default: DM (or inmail) via chat API
+    const result = await unipileRequest('/chats', 'POST', {
+      account_id: message.account.unipile_account_id,
+      attendees_ids: [contact.linkedin_id],
+      text: message.body,
+    });
+
+    return {
+      success: true,
+      message_id: result.id
+    };
+
   } catch (error) {
     return {
       success: false,
@@ -895,15 +1119,14 @@ async function sendLinkedInMessage(message) {
 
 async function checkIfBecameFirstDegreeDuringCampaign(campaignId, contactId) {
   try {
-    // Check if we sent a connection request to this contact during the campaign
-    // that resulted in them becoming a 1st degree connection
+    // Look for a sent connection request in outreach_history
     const { data } = await supabase
-      .from('messages')
+      .from('outreach_history')
       .select('id, sent_at')
       .eq('campaign_id', campaignId)
       .eq('contact_id', contactId)
       .eq('status', 'sent')
-      .eq('action_type', 'connection_request')
+      .eq('channel', 'linkedin_connect')
       .order('sent_at')
       .limit(1);
 
@@ -916,6 +1139,20 @@ async function checkIfBecameFirstDegreeDuringCampaign(campaignId, contactId) {
 
 async function sendEmailMessage(message) {
   try {
+    if (!message.account?.unipile_account_id) {
+      return {
+        success: false,
+        error: 'Missing Unipile account ID'
+      };
+    }
+
+    if (!message.contact?.email) {
+      return {
+        success: false,
+        error: 'Missing contact email'
+      };
+    }
+
     // Unipile API expects /emails endpoint with 'to' as array of objects
     const result = await unipileRequest('/emails', 'POST', {
       account_id: message.account.unipile_account_id,
@@ -941,13 +1178,15 @@ function getActionType(message) {
     return 'email';
   }
 
-  // For LinkedIn, check if this creates a connection request
-  const contact = message.contact;
-  if (contact.connection_degree !== 1 && !contact.already_contacted) {
-    return 'connection_request'; // Will send message with connection
-  } else {
-    return 'message'; // DM to existing connection
+  if (message.channel === 'linkedin_connect') {
+    return 'connection_request';
   }
+
+  if (message.channel === 'linkedin_inmail') {
+    return 'inmail';
+  }
+
+  return 'message';
 }
 
 async function sendNetworkingNotification(outreach, connection, sendResult) {
@@ -1083,7 +1322,7 @@ async function notifyViaEmail(message, sendResult) {
 
   // Add to digest queue instead of sending immediately
   try {
-    const campaign = message.campaign_contact?.campaign;
+    const campaign = message.campaign || message.campaign_contact?.campaign;
     await supabase
       .from('notification_digest_queue')
       .insert({
@@ -1091,7 +1330,7 @@ async function notifyViaEmail(message, sendResult) {
         contact_name: message.contact ? `${message.contact.first_name} ${message.contact.last_name}`.trim() : 'Unknown',
         contact_linkedin_url: message.contact?.linkedin_url || null,
         message_content: message.body,
-        scheduled_at: message.scheduled_at,
+        scheduled_at: message.scheduled_for || message.scheduled_at || null,
         sent_at: sendResult.success ? new Date().toISOString() : null,
         result: sendResult.success ? 'SUCCESS' : 'FAILED',
         error_message: sendResult.error || null,
@@ -1117,13 +1356,13 @@ async function sendCronTestEmail() {
     const subject = `🔄 Cron Run: ${new Date().toISOString()}`;
 
     // Check pending messages
-    const [networkingResult, messagesResult] = await Promise.all([
+    const [networkingResult, queueResult] = await Promise.all([
       supabase.from('networking_outreach').select('id', { count: 'exact' }).eq('status', 'pending').lte('scheduled_at', new Date().toISOString()),
-      supabase.from('messages').select('id', { count: 'exact' }).eq('status', 'pending').lte('scheduled_at', new Date().toISOString())
+      supabase.from('send_queue').select('id', { count: 'exact' }).eq('status', 'pending').lte('scheduled_for', new Date().toISOString())
     ]);
 
     const networkingPending = networkingResult.count || 0;
-    const messagesPending = messagesResult.count || 0;
+    const messagesPending = queueResult.count || 0;
 
     const body = `
 🚀 Cron Execution Report
@@ -1131,7 +1370,7 @@ async function sendCronTestEmail() {
 
 📊 Queue Status:
 • Networking messages pending: ${networkingPending}
-• Regular messages pending: ${messagesPending}
+• Send queue pending: ${messagesPending}
 
 🔧 Environment Status:
 • UNIPILE_DSN: ${UNIPILE_DSN ? '✅ SET' : '❌ MISSING'}

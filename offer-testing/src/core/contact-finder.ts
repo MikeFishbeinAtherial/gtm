@@ -182,6 +182,8 @@ async function enrichContactsWithEmails(
     if (result.emails?.length > 0) {
       const bestEmail = result.emails.find(e => e.verified) || result.emails[0]
       contact.email = bestEmail.email
+      contact.email_status = bestEmail.verified ? 'valid' : 'risky'
+      contact.email_verification_source = 'leadmagic'
     }
   })
 

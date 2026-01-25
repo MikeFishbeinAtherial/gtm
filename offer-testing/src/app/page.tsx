@@ -29,9 +29,16 @@ export default function Home() {
         <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>
           Status
         </h2>
-        <p style={{ color: '#666' }}>
-          Dashboard coming soon. For now, use Cursor commands and Supabase directly.
+        <p style={{ color: '#666', marginBottom: '1rem' }}>
+          Use the dashboard pages for a visual overview:
         </p>
+        <ul style={{ marginLeft: '1.5rem' }}>
+          <li><a href="/activity">Activity feed</a></li>
+          <li><a href="/leads">Leads review</a></li>
+          <li><a href="/queue">Send queue</a></li>
+          <li><a href="/accounts">Account health</a></li>
+          <li><a href="/campaigns">Campaigns</a></li>
+        </ul>
       </section>
     </main>
   )

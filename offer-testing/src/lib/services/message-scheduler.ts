@@ -19,12 +19,15 @@ export interface SchedulingConfig {
 export interface MessageToSchedule {
   id: string;
   campaign_id: string;
+  campaign_contact_id?: string;
   contact_id: string;
-  channel: 'linkedin' | 'email';
+  channel: 'linkedin' | 'email' | 'linkedin_connect' | 'linkedin_dm' | 'linkedin_inmail';
+  sequence_step?: number;
   subject?: string;
   body: string;
   account_id: string;
   scheduled_at?: string;
+  priority?: number;
 }
 
 /**
@@ -45,14 +48,14 @@ export async function scheduleNewMessages(
 
   const config: SchedulingConfig = campaign?.scheduling_config || {
     daily_limit: 40,
-    min_interval_minutes: 5,
-    max_interval_minutes: 20, // Increased for varied intervals - ensures some crons won't send
+    min_interval_minutes: 6,
+    max_interval_minutes: 16, // Keep spacing between 6-16 minutes
     business_hours_start: 9,
     business_hours_end: 17,
     send_days: [1, 2, 3, 4, 5]
   };
 
-  // Find where to start scheduling (after existing messages)
+  // Find where to start scheduling (after existing queue items)
   const lastScheduled = await getLastScheduledSlot(messages[0].channel);
   let cursor = lastScheduled?.scheduled_at
     ? new Date(lastScheduled.scheduled_at)
@@ -75,26 +78,50 @@ export async function scheduleNewMessages(
     console.log(`📅 Message ${i + 1}/${messages.length}: ${cursor.toISOString()}`);
   }
 
-  // Insert all messages with scheduled_at timestamps
-  const messagesToInsert = messages.map(msg => ({
+  // Insert all messages into the send_queue
+  const queueItemsToInsert = messages.map(msg => ({
     id: msg.id,
     campaign_id: msg.campaign_id,
+    campaign_contact_id: msg.campaign_contact_id,
     contact_id: msg.contact_id,
-    channel: msg.channel,
+    channel: normalizeChannel(msg.channel),
+    sequence_step: msg.sequence_step ?? null,
     subject: msg.subject,
     body: msg.body,
     account_id: msg.account_id,
-    scheduled_at: msg.scheduled_at,
+    scheduled_for: msg.scheduled_at,
+    priority: msg.priority ?? 5,
     status: 'pending'
   }));
 
-  const { error } = await supabaseAdmin
-    .from('messages')
-    .insert(messagesToInsert);
+  const { data: queueItems, error } = await supabaseAdmin
+    .from('send_queue')
+    .insert(queueItemsToInsert)
+    .select();
 
   if (error) {
-    console.error('❌ Failed to insert scheduled messages:', error);
+    console.error('❌ Failed to insert send_queue items:', error);
     throw error;
+  }
+
+  // Record queue events for visibility
+  if (queueItems && queueItems.length > 0) {
+    const events = queueItems.map(item => ({
+      send_queue_id: item.id,
+      contact_id: item.contact_id,
+      campaign_id: item.campaign_id,
+      account_id: item.account_id,
+      event_type: 'queued',
+      event_data: { source: 'message-scheduler' }
+    }));
+
+    const { error: eventError } = await supabaseAdmin
+      .from('message_events')
+      .insert(events);
+
+    if (eventError) {
+      console.warn('⚠️ Failed to insert message_events:', eventError);
+    }
   }
 
   console.log(`✅ Successfully scheduled ${messages.length} messages`);
@@ -105,14 +132,30 @@ export async function scheduleNewMessages(
  */
 async function getLastScheduledSlot(channel: string) {
   const { data } = await supabaseAdmin
-    .from('messages')
-    .select('scheduled_at')
-    .eq('channel', channel)
+    .from('send_queue')
+    .select('scheduled_for')
+    .eq('channel', normalizeChannel(channel))
     .eq('status', 'pending')
-    .order('scheduled_at', { ascending: false })
+    .order('scheduled_for', { ascending: false })
     .limit(1);
 
-  return data?.[0];
+  if (!data || data.length === 0) {
+    return null;
+  }
+
+  return { scheduled_at: data[0].scheduled_for };
+}
+
+function normalizeChannel(channel: string) {
+  if (channel === 'linkedin') {
+    return 'linkedin_dm'
+  }
+
+  if (channel === 'email' || channel === 'linkedin_connect' || channel === 'linkedin_dm' || channel === 'linkedin_inmail') {
+    return channel
+  }
+
+  return 'email'
 }
 
 /**
@@ -232,8 +275,8 @@ function getEstimatedMessagesForDay(day: Date, config: SchedulingConfig): number
 export function validateSchedulingConfig(config: Partial<SchedulingConfig>): SchedulingConfig {
   return {
     daily_limit: Math.max(1, Math.min(config.daily_limit || 40, 100)),
-    min_interval_minutes: Math.max(1, Math.min(config.min_interval_minutes || 5, 60)),
-    max_interval_minutes: Math.max(config.min_interval_minutes || 5, Math.min(config.max_interval_minutes || 10, 120)),
+    min_interval_minutes: Math.max(1, Math.min(config.min_interval_minutes || 6, 60)),
+    max_interval_minutes: Math.max(config.min_interval_minutes || 6, Math.min(config.max_interval_minutes || 16, 120)),
     business_hours_start: Math.max(0, Math.min(config.business_hours_start || 9, 23)),
     business_hours_end: Math.max(config.business_hours_start || 9, Math.min(config.business_hours_end || 17, 24)),
     send_days: config.send_days || [1, 2, 3, 4, 5]

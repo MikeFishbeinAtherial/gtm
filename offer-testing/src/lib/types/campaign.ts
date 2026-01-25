@@ -32,6 +32,7 @@ export interface Account {
   // Unipile integration
   unipile_account_id: string | null
   provider: string | null
+  rotation_set: 'odd' | 'even' | 'burner' | null
   
   status: AccountStatus
   
@@ -58,7 +59,9 @@ export interface Account {
   total_replies: number
   
   // Health metrics
+  health_score: number | null
   bounce_rate: number | null
+  spam_rate: number | null
   reply_rate: number | null
   last_health_check: string | null
   
@@ -72,6 +75,8 @@ export interface Account {
 // ===========================================
 
 export type CampaignChannel = 'email' | 'linkedin' | 'multi'
+
+export type CampaignType = 'cold_outreach' | 'networking'
 
 export type CampaignStatus =
   | 'draft'      // Being set up
@@ -87,11 +92,13 @@ export interface Campaign {
   offer_id: string
   
   channel: CampaignChannel
+  campaign_type: CampaignType
   account_id: string | null
   
   // Configuration (JSON)
   target_criteria: Record<string, unknown> | null
   sequence_config: SequenceConfig | null
+  scheduling_config: SchedulingConfig | null
   
   status: CampaignStatus
   
@@ -131,6 +138,15 @@ export interface SequenceConfig {
   steps: SequenceStep[]
   stop_on_reply?: boolean
   stop_on_meeting?: boolean
+}
+
+export interface SchedulingConfig {
+  daily_limit: number
+  min_interval_minutes: number
+  max_interval_minutes: number
+  business_hours_start: number
+  business_hours_end: number
+  send_days: number[]
 }
 
 export interface SequenceStep {
@@ -208,10 +224,13 @@ export type MessageStatus =
 export interface Message {
   id: string
   campaign_contact_id: string
+  campaign_id: string | null
   contact_id: string
   account_id: string
+  send_queue_id: string | null
   
   channel: MessageChannel
+  action_type: ActivityAction | null
   sequence_step: number
   
   // Content
@@ -275,9 +294,11 @@ export interface CreateCampaignInput {
   name: string
   offer_id: string
   channel: CampaignChannel
+  campaign_type?: CampaignType
   account_id?: string
   target_criteria?: Record<string, unknown>
   sequence_config?: SequenceConfig
+  scheduling_config?: SchedulingConfig
   send_window_start?: string
   send_window_end?: string
   send_days?: number[]
@@ -292,14 +313,153 @@ export interface CreateCampaignContactInput {
 
 export interface CreateMessageInput {
   campaign_contact_id: string
+  campaign_id?: string
   contact_id: string
   account_id: string
+  send_queue_id?: string
   channel: MessageChannel
+  action_type?: ActivityAction
   sequence_step: number
   subject?: string
   body: string
   personalization_used?: Record<string, string>
   scheduled_at?: string
+}
+
+// ===========================================
+// SEND QUEUE + EVENTS
+// ===========================================
+
+export type SendQueueStatus =
+  | 'pending'
+  | 'scheduled'
+  | 'processing'
+  | 'sent'
+  | 'delivered'
+  | 'failed'
+  | 'bounced'
+  | 'cancelled'
+  | 'skipped'
+
+export interface SendQueueItem {
+  id: string
+  campaign_id: string
+  campaign_contact_id: string | null
+  contact_id: string
+  account_id: string | null
+  channel: MessageChannel
+  sequence_step: number | null
+  subject: string | null
+  body: string
+  scheduled_for: string
+  priority: number
+  status: SendQueueStatus
+  attempts: number
+  max_attempts: number
+  last_attempt_at: string | null
+  last_error: string | null
+  external_message_id: string | null
+  sent_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type MessageEventType =
+  | 'queued'
+  | 'scheduled'
+  | 'sent'
+  | 'delivered'
+  | 'opened'
+  | 'clicked'
+  | 'replied'
+  | 'bounced'
+  | 'spam'
+  | 'unsubscribed'
+  | 'failed'
+  | 'skipped'
+
+export interface MessageEvent {
+  id: string
+  send_queue_id: string
+  contact_id: string
+  campaign_id: string
+  account_id: string | null
+  event_type: MessageEventType
+  event_data: Record<string, unknown> | null
+  reply_text: string | null
+  reply_sentiment: ReplySentiment | null
+  created_at: string
+}
+
+export interface OutreachHistory {
+  id: string
+  contact_email: string | null
+  contact_linkedin_url: string | null
+  contact_id: string | null
+  campaign_id: string | null
+  offer_id: string | null
+  account_id: string | null
+  send_queue_id: string | null
+  channel: MessageChannel
+  message_subject: string | null
+  message_body: string | null
+  sent_at: string
+  status: 'sent' | 'delivered' | 'bounced' | 'replied' | 'spam' | 'failed'
+  replied_at: string | null
+  reply_sentiment: string | null
+  created_at: string
+}
+
+// ===========================================
+// MESSAGE TEMPLATES
+// ===========================================
+
+export type MessageTemplateStatus = 'draft' | 'approved' | 'archived'
+
+export interface MessageTemplate {
+  id: string
+  offer_id: string
+  campaign_id: string | null
+  name: string
+  channel: MessageChannel
+  sequence_step: number | null
+  template_key: string | null
+  subject: string | null
+  body: string
+  status: MessageTemplateStatus
+  created_at: string
+  updated_at: string
+}
+
+// ===========================================
+// PIPELINE RUNS
+// ===========================================
+
+export type PipelineRunStatus = 'running' | 'completed' | 'failed' | 'cancelled'
+export type PipelineStepStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
+
+export interface PipelineRun {
+  id: string
+  offer_id: string | null
+  campaign_id: string | null
+  steps: string[]
+  input_params: Record<string, unknown> | null
+  status: PipelineRunStatus
+  error_message: string | null
+  output_summary: Record<string, unknown> | null
+  started_at: string
+  completed_at: string | null
+}
+
+export interface PipelineStep {
+  id: string
+  pipeline_run_id: string
+  step_name: string
+  status: PipelineStepStatus
+  step_output: Record<string, unknown> | null
+  error_message: string | null
+  started_at: string | null
+  completed_at: string | null
 }
 
 export interface CreateAccountActivityInput {
