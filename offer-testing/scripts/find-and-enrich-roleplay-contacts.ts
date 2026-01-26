@@ -14,7 +14,7 @@ dotenv.config();
 
 import { createClient } from '@supabase/supabase-js';
 import { exaSearchPeople, type ExaPerson } from '../src/lib/clients/exa.ts';
-import { fullenrich } from '../src/lib/clients/fullenrich.ts';
+import { FullenrichClient } from '../src/lib/clients/fullenrich.ts';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY =
@@ -28,6 +28,14 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+// Initialize FullEnrich client AFTER env vars are loaded
+const FULLENRICH_API_KEY = process.env.FULLENRICH_API_KEY;
+if (!FULLENRICH_API_KEY) {
+  console.error('❌ Missing FULLENRICH_API_KEY in .env.local');
+  process.exit(1);
+}
+const fullenrich = new FullenrichClient(FULLENRICH_API_KEY);
 
 const OFFER_ID = 'd07a584e-46dd-4c9f-8304-f6961a11ec3f';
 
