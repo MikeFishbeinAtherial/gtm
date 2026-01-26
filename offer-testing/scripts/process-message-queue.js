@@ -1150,7 +1150,7 @@ async function sendLinkedInMessage(message) {
       }
 
       const result = await unipileRequest('/linkedin/connect', 'POST', {
-        account_id: message.account.unipile_account_id,
+        account_id: accountId,  // Use accountId from earlier fallback check (not message.account.unipile_account_id)
         recipient_url: contact.linkedin_url,
         message: message.body,
       });
