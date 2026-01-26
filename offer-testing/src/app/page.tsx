@@ -50,6 +50,8 @@ type FeedItem = {
   campaignType: "networking" | "cold"
   channel: string
   status: string
+  /** Account name/id that sent or will send this message */
+  accountName: string | null
 }
 
 type FeedResponse = {
@@ -107,6 +109,7 @@ async function getFeedItems(): Promise<FeedResponse> {
         campaignType: "networking",
         channel: "linkedin",
         status: r.status,
+        accountName: null, // Networking doesn't track account_id in networking_outreach
       })
     })
   }
@@ -138,6 +141,7 @@ async function getFeedItems(): Promise<FeedResponse> {
         campaignType: "networking",
         channel: "linkedin",
         status: r.status,
+        accountName: null, // Networking doesn't track account_id in networking_outreach
       })
     })
   }
@@ -169,6 +173,7 @@ async function getFeedItems(): Promise<FeedResponse> {
         campaignType: "networking",
         channel: "linkedin",
         status: r.status,
+        accountName: null, // Networking doesn't track account_id in networking_outreach
       })
     })
   }
@@ -177,9 +182,10 @@ async function getFeedItems(): Promise<FeedResponse> {
   const { data: coldScheduled } = await supabase
     .from("send_queue")
     .select(
-      `id, status, scheduled_for, body, subject, channel,
-       campaigns(name, campaign_type),
-       contacts(full_name, companies(name))`
+      `id, status, scheduled_for, body, subject, channel, account_id,
+       campaigns(name, campaign_type, account_id),
+       contacts(full_name, companies(name)),
+       accounts(name)`
     )
     .in("status", ["pending", "scheduled"])
     .order("scheduled_for", { ascending: true })
@@ -190,6 +196,7 @@ async function getFeedItems(): Promise<FeedResponse> {
       const camp = r.campaigns
       const contact = r.contacts
       const company = contact?.companies ?? contact?.company
+      const account = r.accounts
       const msg = [r.subject, r.body].filter(Boolean).join(" — ") || ""
       items.push({
         id: r.id,
@@ -202,6 +209,7 @@ async function getFeedItems(): Promise<FeedResponse> {
         campaignType: "cold",
         channel: r.channel || "email",
         status: r.status,
+        accountName: account?.name || (r.account_id ? `ID: ${r.account_id.slice(0, 8)}` : null),
       })
     })
   }
@@ -210,8 +218,9 @@ async function getFeedItems(): Promise<FeedResponse> {
   const { data: coldSent } = await supabase
     .from("outreach_history")
     .select(
-      `id, sent_at, message_body, message_subject, contact_email, contact_linkedin_url, channel,
-       campaigns(name, campaign_type)`
+      `id, sent_at, message_body, message_subject, contact_email, contact_linkedin_url, channel, account_id,
+       campaigns(name, campaign_type, account_id),
+       accounts(name)`
     )
     .order("sent_at", { ascending: false })
     .limit(100)
@@ -219,6 +228,7 @@ async function getFeedItems(): Promise<FeedResponse> {
   if (coldSent) {
     coldSent.forEach((r: any) => {
       const camp = r.campaigns
+      const account = r.accounts
       const contact = r.contact_email || r.contact_linkedin_url || "Unknown"
       const msg = [r.message_subject, r.message_body].filter(Boolean).join(" — ") || ""
       items.push({
@@ -232,6 +242,7 @@ async function getFeedItems(): Promise<FeedResponse> {
         campaignType: "cold",
         channel: r.channel || "email",
         status: "sent",
+        accountName: account?.name || (r.account_id ? `ID: ${r.account_id.slice(0, 8)}` : null),
       })
     })
   }
@@ -240,9 +251,10 @@ async function getFeedItems(): Promise<FeedResponse> {
   const { data: coldFailed } = await supabase
     .from("send_queue")
     .select(
-      `id, status, scheduled_for, last_attempt_at, body, subject, channel,
-       campaigns(name, campaign_type),
-       contacts(full_name, companies(name))`
+      `id, status, scheduled_for, last_attempt_at, body, subject, channel, account_id,
+       campaigns(name, campaign_type, account_id),
+       contacts(full_name, companies(name)),
+       accounts(name)`
     )
     .eq("status", "failed")
     .order("scheduled_for", { ascending: false })
@@ -253,6 +265,7 @@ async function getFeedItems(): Promise<FeedResponse> {
       const camp = r.campaigns
       const contact = r.contacts
       const company = contact?.companies ?? contact?.company
+      const account = r.accounts
       const ts = r.last_attempt_at || r.scheduled_for
       const msg = [r.subject, r.body].filter(Boolean).join(" — ") || ""
       items.push({
@@ -266,11 +279,12 @@ async function getFeedItems(): Promise<FeedResponse> {
         campaignType: "cold",
         channel: r.channel || "email",
         status: r.status,
+        accountName: account?.name || (r.account_id ? `ID: ${r.account_id.slice(0, 8)}` : null),
       })
     })
   }
 
-  // Sort newest first.
+  // Sort newest first (most recent at top).
   const sorted = items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
   return { items: sorted }
 }
@@ -383,6 +397,9 @@ function LogTable({ items }: { items: FeedItem[] }) {
             <TableHead className="w-[160px] font-medium text-xs text-muted-foreground uppercase tracking-wider">
               Channel
             </TableHead>
+            <TableHead className="w-[140px] font-medium text-xs text-muted-foreground uppercase tracking-wider">
+              Account
+            </TableHead>
             <TableHead className="font-medium text-xs text-muted-foreground uppercase tracking-wider">
               Message Preview
             </TableHead>
@@ -391,7 +408,7 @@ function LogTable({ items }: { items: FeedItem[] }) {
         <TableBody>
           {items.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                 No logs found. Data comes from networking_outreach + send_queue + outreach_history.
               </TableCell>
             </TableRow>
@@ -437,6 +454,13 @@ function LogTable({ items }: { items: FeedItem[] }) {
                   </div>
                 </TableCell>
                 <TableCell className="align-top py-4 text-sm text-muted-foreground">{item.channel}</TableCell>
+                <TableCell className="align-top py-4">
+                  {item.accountName ? (
+                    <span className="text-xs text-muted-foreground font-mono">{item.accountName}</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground/50">—</span>
+                  )}
+                </TableCell>
                 <TableCell className="align-top py-4">
                   <div className="max-w-[500px] font-mono text-xs text-muted-foreground group-hover:text-foreground/80 transition-colors line-clamp-2">
                     {item.message}

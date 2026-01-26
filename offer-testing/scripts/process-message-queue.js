@@ -19,6 +19,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import FormData from 'form-data';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1204,13 +1205,35 @@ async function sendEmailMessage(message) {
       };
     }
 
-    // Unipile API expects /emails endpoint with 'to' as array of objects
-    const result = await unipileRequest('/emails', 'POST', {
-      account_id: message.account.unipile_account_id,
-      to: [{ identifier: message.contact.email }], // Array format required
-      subject: message.subject,
-      body: message.body,
+    // Unipile API requires multipart/form-data, not JSON
+    // Endpoint: /api/v1/emails (DSN already includes /api/v1)
+    // Use native FormData (Node.js 18+) which is compatible with fetch
+    const form = new FormData();
+    
+    form.append('account_id', message.account.unipile_account_id);
+    form.append('subject', message.subject);
+    form.append('body', message.body);
+    form.append('to', JSON.stringify([{ 
+      identifier: message.contact.email,
+      display_name: message.contact.first_name || message.contact.email.split('@')[0]
+    }]));
+
+    // Don't set Content-Type header - fetch will set it automatically with boundary
+    const response = await fetch(`${UNIPILE_DSN}/emails`, {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': UNIPILE_API_KEY
+        // Note: Do NOT set Content-Type - fetch will add it automatically with boundary
+      },
+      body: form
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Unipile API error (${response.status}): ${errorText}`);
+    }
+
+    const result = await response.json();
 
     return {
       success: true,
