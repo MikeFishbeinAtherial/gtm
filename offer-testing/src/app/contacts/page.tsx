@@ -50,9 +50,12 @@ type ContactRow = {
   // Aggregated data
   campaign_names: string[]
   campaign_ids: string[]
+  campaign_details: Array<{ name: string; offer_name: string; offer_id: string }> // Campaign with offer info
   scheduled_count: number
   scheduled_for: string | null // Next scheduled message time
   sent_count: number
+  scheduled_messages: Array<{ scheduled_for: string; subject: string; body: string; campaign_name: string }> // All scheduled messages
+  sent_messages: Array<{ sent_at: string; subject: string; body: string; campaign_name: string }> // All sent messages
   is_networking: boolean // Is a LinkedIn connection
   is_cold: boolean // Is a cold email lead
 }
@@ -103,49 +106,105 @@ export default async function ContactsPage() {
 
   const contactIds = contactsData.map((c) => c.id)
 
-  // Get campaign assignments
-  let campaignMap: Record<string, { names: Set<string>; ids: Set<string> }> = {}
+  // Get campaign assignments with offer info
+  let campaignMap: Record<string, { names: Set<string>; ids: Set<string>; details: Array<{ name: string; offer_name: string; offer_id: string }> }> = {}
 
   if (contactIds.length > 0) {
     const { data: campaignContacts } = await supabase
       .from("campaign_contacts")
-      .select("contact_id, campaigns(name, id)")
+      .select("contact_id, campaigns(name, id, offer_id, offers(name))")
       .in("contact_id", contactIds)
 
     if (campaignContacts) {
       campaignContacts.forEach((cc: any) => {
         const cid = cc.contact_id
-        if (!campaignMap[cid]) campaignMap[cid] = { names: new Set(), ids: new Set() }
-        if (cc.campaigns?.name) campaignMap[cid].names.add(cc.campaigns.name)
-        if (cc.campaigns?.id) campaignMap[cid].ids.add(cc.campaigns.id)
+        if (!campaignMap[cid]) {
+          campaignMap[cid] = { names: new Set(), ids: new Set(), details: [] }
+        }
+        if (cc.campaigns?.name) {
+          campaignMap[cid].names.add(cc.campaigns.name)
+          if (cc.campaigns?.id) campaignMap[cid].ids.add(cc.campaigns.id)
+          // Add campaign with offer info
+          const detail = {
+            name: cc.campaigns.name,
+            offer_name: cc.campaigns.offers?.name || "Unknown",
+            offer_id: cc.campaigns.offer_id || "",
+          }
+          // Avoid duplicates
+          if (!campaignMap[cid].details.find((d) => d.name === detail.name && d.offer_id === detail.offer_id)) {
+            campaignMap[cid].details.push(detail)
+          }
+        }
       })
     }
   }
 
-  // Get scheduled and sent messages
-  let scheduledMap: Record<string, { count: number; next: string | null }> = {}
-  let sentMap: Record<string, number> = {}
+  // Get scheduled and sent messages with full details
+  let scheduledMap: Record<string, { count: number; next: string | null; messages: Array<{ scheduled_for: string; subject: string; body: string; campaign_name: string }> }> = {}
+  let sentMap: Record<string, { count: number; messages: Array<{ sent_at: string; subject: string; body: string; campaign_name: string }> }> = {}
 
   if (contactIds.length > 0) {
     const { data: sendQueue } = await supabase
       .from("send_queue")
-      .select("contact_id, status, scheduled_for")
+      .select("contact_id, status, scheduled_for, sent_at, subject, body, campaigns(name)")
       .in("contact_id", contactIds)
 
     if (sendQueue) {
       sendQueue.forEach((sq: any) => {
         const cid = sq.contact_id
         if (sq.status === "pending" || sq.status === "scheduled") {
-          if (!scheduledMap[cid]) scheduledMap[cid] = { count: 0, next: null }
+          if (!scheduledMap[cid]) scheduledMap[cid] = { count: 0, next: null, messages: [] }
           scheduledMap[cid].count += 1
           if (sq.scheduled_for && (!scheduledMap[cid].next || sq.scheduled_for < scheduledMap[cid].next!)) {
             scheduledMap[cid].next = sq.scheduled_for
           }
+          // Add message details
+          scheduledMap[cid].messages.push({
+            scheduled_for: sq.scheduled_for,
+            subject: sq.subject || "",
+            body: sq.body || "",
+            campaign_name: sq.campaigns?.name || "Unknown",
+          })
         }
         if (sq.status === "sent") {
-          sentMap[cid] = (sentMap[cid] || 0) + 1
+          if (!sentMap[cid]) sentMap[cid] = { count: 0, messages: [] }
+          sentMap[cid].count += 1
+          // Add sent message details
+          sentMap[cid].messages.push({
+            sent_at: sq.sent_at || sq.scheduled_for || "",
+            subject: sq.subject || "",
+            body: sq.body || "",
+            campaign_name: sq.campaigns?.name || "Unknown",
+          })
         }
       })
+    }
+
+    // Also check outreach_history for sent messages (by email)
+    const emails = contactsData.filter((c) => c.email).map((c) => c.email!)
+    if (emails.length > 0) {
+      const { data: outreachHistory } = await supabase
+        .from("outreach_history")
+        .select("contact_email, sent_at, message_subject, message_body, campaigns(name)")
+        .in("contact_email", emails)
+
+      if (outreachHistory) {
+        outreachHistory.forEach((oh: any) => {
+          // Find contact by email
+          const contact = contactsData.find((c) => c.email && c.email === oh.contact_email)
+          if (contact) {
+            const cid = contact.id
+            if (!sentMap[cid]) sentMap[cid] = { count: 0, messages: [] }
+            sentMap[cid].count += 1
+            sentMap[cid].messages.push({
+              sent_at: oh.sent_at || "",
+              subject: oh.message_subject || "",
+              body: oh.message_body || "",
+              campaign_name: oh.campaigns?.name || "Unknown",
+            })
+          }
+        })
+      }
     }
   }
 
@@ -158,8 +217,9 @@ export default async function ContactsPage() {
 
   // Build contact rows
   const contacts: ContactRow[] = contactsData.map((c: any) => {
-    const campaigns = campaignMap[c.id] || { names: new Set(), ids: new Set() }
-    const scheduled = scheduledMap[c.id] || { count: 0, next: null }
+    const campaigns = campaignMap[c.id] || { names: new Set(), ids: new Set(), details: [] }
+    const scheduled = scheduledMap[c.id] || { count: 0, next: null, messages: [] }
+    const sent = sentMap[c.id] || { count: 0, messages: [] }
     const isLinkedInConnection = c.linkedin_url && linkedinUrls.has(c.linkedin_url)
     const isColdLead = c.source_tool && c.source_tool !== "linkedin"
 
@@ -197,9 +257,12 @@ export default async function ContactsPage() {
       updated_at: c.updated_at,
       campaign_names: Array.from(campaigns.names),
       campaign_ids: Array.from(campaigns.ids),
+      campaign_details: campaigns.details,
       scheduled_count: scheduled.count,
       scheduled_for: scheduled.next,
-      sent_count: sentMap[c.id] || 0,
+      scheduled_messages: scheduled.messages,
+      sent_count: sent.count,
+      sent_messages: sent.messages,
       is_networking: isLinkedInConnection,
       is_cold: isColdLead,
     }

@@ -62,9 +62,12 @@ type ContactRow = {
   updated_at: string | null
   campaign_names: string[]
   campaign_ids: string[]
+  campaign_details: Array<{ name: string; offer_name: string; offer_id: string }>
   scheduled_count: number
   scheduled_for: string | null
+  scheduled_messages: Array<{ scheduled_for: string; subject: string; body: string; campaign_name: string }>
   sent_count: number
+  sent_messages: Array<{ sent_at: string; subject: string; body: string; campaign_name: string }>
   is_networking: boolean
   is_cold: boolean
 }
@@ -226,27 +229,27 @@ export function ContactsTableClient({
             <TableHeader className="bg-muted/30">
               <TableRow className="hover:bg-transparent border-border">
                 <ColumnHeader tooltip={`Full name\nSource: contacts.full_name\nPerson's complete name.`}>Name</ColumnHeader>
-                <ColumnHeader tooltip={`Job title\nSource: contacts.title\nCurrent position at their company.`}>Title</ColumnHeader>
-                <ColumnHeader tooltip={`Email address\nSource: contacts.email\nPrimary email for outreach.`}>Email</ColumnHeader>
+                <ColumnHeader tooltip={`Email address\nSource: contacts.email\nPrimary email for outreach. Shows if contact has email or needs one.`}>Email</ColumnHeader>
                 <ColumnHeader tooltip={`Email verification status\nSource: contacts.email_status\nValues: unknown, valid, invalid, risky, failed`}>Email Status</ColumnHeader>
-                <ColumnHeader tooltip={`LinkedIn profile URL\nSource: contacts.linkedin_url\nLink to their LinkedIn profile.`}>LinkedIn</ColumnHeader>
+                <ColumnHeader tooltip={`Job title\nSource: contacts.title\nCurrent position at their company.`}>Title</ColumnHeader>
                 <ColumnHeader tooltip={`Company name\nSource: contacts.company_id → companies.name\nThe company they work for.`}>Company</ColumnHeader>
+                <ColumnHeader tooltip={`Campaign and Offer\nSource: campaign_contacts → campaigns → offers\nShows campaign name and associated offer for each contact.`}>Campaign / Offer</ColumnHeader>
+                <ColumnHeader tooltip={`Copy Preview\nSource: send_queue.subject, send_queue.body\nShows the subject line and first line of the message being sent.`}>Copy Preview</ColumnHeader>
+                <ColumnHeader tooltip={`Scheduled Date\nSource: send_queue.scheduled_for WHERE status IN ('pending','scheduled')\nWhen messages are scheduled to be sent.`}>Scheduled Date</ColumnHeader>
+                <ColumnHeader tooltip={`Sent Date\nSource: send_queue.sent_at or outreach_history.sent_at\nWhen messages were actually sent.`}>Sent Date</ColumnHeader>
                 <ColumnHeader tooltip={`Type of lead\nComputed:\n- Networking: Has LinkedIn connection (linkedin_connections)\n- Cold: Has cold email contact (contacts.source_tool != linkedin)`}>Type</ColumnHeader>
-                <ColumnHeader tooltip={`Campaigns this contact is assigned to\nSource: campaign_contacts → campaigns\nShows all campaign names.`}>Campaigns</ColumnHeader>
-                <ColumnHeader tooltip={`Messages scheduled to send\nSource: send_queue WHERE status IN ('pending','scheduled')\nCount of pending/scheduled messages.`}>Scheduled</ColumnHeader>
-                <ColumnHeader tooltip={`Next scheduled message time\nSource: MIN(send_queue.scheduled_for) WHERE status IN ('pending','scheduled')\nWhen the next message will be sent.`}>Next Send</ColumnHeader>
-                <ColumnHeader tooltip={`Messages already sent\nSource: send_queue WHERE status = 'sent'\nCount of sent messages.`}>Sent</ColumnHeader>
+                <ColumnHeader tooltip={`Messages scheduled to send\nSource: send_queue WHERE status IN ('pending','scheduled')\nCount of pending/scheduled messages.`}>Scheduled Count</ColumnHeader>
+                <ColumnHeader tooltip={`Messages already sent\nSource: send_queue WHERE status = 'sent'\nCount of sent messages.`}>Sent Count</ColumnHeader>
                 <ColumnHeader tooltip={`Buyer fit score (1-10)\nSource: contacts.buyer_fit_score\nHow well the contact matches our buyer persona.`}>Fit Score</ColumnHeader>
                 <ColumnHeader tooltip={`Priority level\nSource: contacts.priority\nValues: high, medium, low`}>Priority</ColumnHeader>
                 <ColumnHeader tooltip={`Contact status\nSource: contacts.status\nCurrent status in the outreach process.`}>Status</ColumnHeader>
-                <ColumnHeader tooltip={`Source tool that found this contact\nSource: contacts.source_tool\nValues: parallel, leadmagic, exa, manual, linkedin`}>Source</ColumnHeader>
                 <ColumnHeader tooltip={`When contact was discovered\nSource: contacts.created_at\nTimestamp when added to database.`}>Created</ColumnHeader>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredAndSorted.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={16} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={15} className="h-24 text-center text-muted-foreground">
                     No contacts match your filters.
                   </TableCell>
                 </TableRow>
@@ -254,14 +257,20 @@ export function ContactsTableClient({
                 filteredAndSorted.map((contact) => (
                   <TableRow key={contact.id} className="hover:bg-muted/20 border-border">
                     <TableCell className="font-medium">{contact.full_name || "—"}</TableCell>
-                    <TableCell className="text-sm">{contact.title || "—"}</TableCell>
-                    <TableCell className="text-xs font-mono">
+                    <TableCell>
                       {contact.email ? (
-                        <a href={`mailto:${contact.email}`} className="text-primary hover:underline">
-                          {contact.email}
-                        </a>
+                        <div>
+                          <a href={`mailto:${contact.email}`} className="text-primary hover:underline text-xs font-mono">
+                            {contact.email}
+                          </a>
+                          <Badge variant="outline" className="ml-2 bg-primary/10 text-primary border-primary/20 text-[10px]">
+                            Has Email
+                          </Badge>
+                        </div>
                       ) : (
-                        "—"
+                        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-[10px]">
+                          No Email
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell>
@@ -282,15 +291,7 @@ export function ContactsTableClient({
                         "—"
                       )}
                     </TableCell>
-                    <TableCell className="text-xs">
-                      {contact.linkedin_url ? (
-                        <a href={contact.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                          View
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
+                    <TableCell className="text-sm">{contact.title || "—"}</TableCell>
                     <TableCell>
                       <div>
                         <div className="font-medium text-sm">{contact.company_name || "—"}</div>
@@ -298,6 +299,82 @@ export function ContactsTableClient({
                           <div className="text-xs text-muted-foreground font-mono">{contact.company_domain}</div>
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {contact.campaign_details.length > 0 ? (
+                        <div className="max-w-[250px] space-y-1">
+                          {contact.campaign_details.map((detail, i) => (
+                            <div key={i} className="border-b border-border/50 pb-1 last:border-0">
+                              <div className="font-medium">{detail.name}</div>
+                              <div className="text-muted-foreground">Offer: {detail.offer_name}</div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">No campaigns</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs max-w-[300px]">
+                      {contact.scheduled_messages.length > 0 ? (
+                        <div className="space-y-2">
+                          {contact.scheduled_messages.slice(0, 1).map((msg, i) => (
+                            <div key={i} className="border-l-2 border-primary/30 pl-2">
+                              <div className="font-medium text-[10px] text-muted-foreground">Subject:</div>
+                              <div className="truncate">{msg.subject || "—"}</div>
+                              <div className="font-medium text-[10px] text-muted-foreground mt-1">Preview:</div>
+                              <div className="line-clamp-2 text-[10px]">{msg.body?.substring(0, 100) || "—"}...</div>
+                            </div>
+                          ))}
+                          {contact.scheduled_messages.length > 1 && (
+                            <div className="text-muted-foreground/70 text-[10px]">+{contact.scheduled_messages.length - 1} more scheduled</div>
+                          )}
+                        </div>
+                      ) : contact.sent_messages.length > 0 ? (
+                        <div className="space-y-2">
+                          {contact.sent_messages.slice(0, 1).map((msg, i) => (
+                            <div key={i} className="border-l-2 border-muted pl-2">
+                              <div className="font-medium text-[10px] text-muted-foreground">Subject:</div>
+                              <div className="truncate">{msg.subject || "—"}</div>
+                              <div className="font-medium text-[10px] text-muted-foreground mt-1">Preview:</div>
+                              <div className="line-clamp-2 text-[10px]">{msg.body?.substring(0, 100) || "—"}...</div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground font-mono">
+                      {contact.scheduled_messages.length > 0 ? (
+                        <div className="space-y-1">
+                          {contact.scheduled_messages.slice(0, 2).map((msg, i) => (
+                            <div key={i}>
+                              {formatInTimeZone(new Date(msg.scheduled_for), TIME_ZONE, "MMM d, h:mm a")} ET
+                            </div>
+                          ))}
+                          {contact.scheduled_messages.length > 2 && (
+                            <div className="text-muted-foreground/70">+{contact.scheduled_messages.length - 2} more</div>
+                          )}
+                        </div>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground font-mono">
+                      {contact.sent_messages.length > 0 ? (
+                        <div className="space-y-1">
+                          {contact.sent_messages.slice(0, 2).map((msg, i) => (
+                            <div key={i}>
+                              {formatInTimeZone(new Date(msg.sent_at), TIME_ZONE, "MMM d, h:mm a")} ET
+                            </div>
+                          ))}
+                          {contact.sent_messages.length > 2 && (
+                            <div className="text-muted-foreground/70">+{contact.sent_messages.length - 2} more</div>
+                          )}
+                        </div>
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1 flex-wrap">
@@ -316,20 +393,6 @@ export function ContactsTableClient({
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs">
-                      {contact.campaign_names.length > 0 ? (
-                        <div className="max-w-[200px]">
-                          {contact.campaign_names.slice(0, 2).map((name, i) => (
-                            <div key={i} className="truncate">{name}</div>
-                          ))}
-                          {contact.campaign_names.length > 2 && (
-                            <div className="text-muted-foreground/70">+{contact.campaign_names.length - 2} more</div>
-                          )}
-                        </div>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
                     <TableCell className="text-center font-medium">
                       {contact.scheduled_count > 0 ? (
                         <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
@@ -338,11 +401,6 @@ export function ContactsTableClient({
                       ) : (
                         "—"
                       )}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground font-mono">
-                      {contact.scheduled_for
-                        ? formatInTimeZone(new Date(contact.scheduled_for), TIME_ZONE, "MMM d, h:mm a") + " ET"
-                        : "—"}
                     </TableCell>
                     <TableCell className="text-center">{contact.sent_count || "—"}</TableCell>
                     <TableCell>
@@ -384,7 +442,6 @@ export function ContactsTableClient({
                     <TableCell>
                       <Badge variant="outline" className="text-xs">{contact.status || "new"}</Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground font-mono">{contact.source_tool}</TableCell>
                     <TableCell className="text-xs text-muted-foreground font-mono">
                       {contact.created_at ? formatInTimeZone(new Date(contact.created_at), TIME_ZONE, "MMM d, yyyy") : "—"}
                     </TableCell>

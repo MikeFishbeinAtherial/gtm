@@ -1191,10 +1191,27 @@ async function checkIfBecameFirstDegreeDuringCampaign(campaignId, contactId) {
 
 async function sendEmailMessage(message) {
   try {
-    if (!message.account?.unipile_account_id) {
+    // Debug logging
+    console.log(`📧 sendEmailMessage called:`);
+    console.log(`   message.account:`, message.account ? 'exists' : 'MISSING');
+    console.log(`   message.account?.unipile_account_id:`, message.account?.unipile_account_id || 'MISSING');
+    console.log(`   message.contact?.email:`, message.contact?.email || 'MISSING');
+    console.log(`   message.subject:`, message.subject?.substring(0, 50) || 'MISSING');
+
+    // Fallback: Use UNIPILE_EMAIL_ACCOUNT_ID from env if account relation is missing
+    let accountId = message.account?.unipile_account_id;
+    
+    if (!accountId) {
+      console.warn(`⚠️  Account relation missing, using UNIPILE_EMAIL_ACCOUNT_ID from env`);
+      accountId = process.env.UNIPILE_EMAIL_ACCOUNT_ID;
+    }
+
+    if (!accountId) {
+      console.error(`❌ Missing account data. message.account:`, JSON.stringify(message.account, null, 2));
+      console.error(`   UNIPILE_EMAIL_ACCOUNT_ID env:`, process.env.UNIPILE_EMAIL_ACCOUNT_ID || 'NOT SET');
       return {
         success: false,
-        error: 'Missing Unipile account ID'
+        error: `Missing Unipile account ID. Account data: ${JSON.stringify(message.account || {})}, Env: ${process.env.UNIPILE_EMAIL_ACCOUNT_ID || 'NOT SET'}`
       };
     }
 
@@ -1205,18 +1222,32 @@ async function sendEmailMessage(message) {
       };
     }
 
+    accountId = String(accountId).trim();
+    if (!accountId || accountId === 'undefined' || accountId === 'null') {
+      console.error(`❌ Invalid account_id: "${accountId}"`);
+      return {
+        success: false,
+        error: `Invalid account_id: "${accountId}"`
+      };
+    }
+
     // Unipile API requires multipart/form-data, not JSON
     // Endpoint: /api/v1/emails (DSN already includes /api/v1)
     // Use native FormData (Node.js 18+) which is compatible with fetch
     const form = new FormData();
     
-    form.append('account_id', message.account.unipile_account_id);
-    form.append('subject', message.subject);
-    form.append('body', message.body);
+    form.append('account_id', accountId);
+    form.append('subject', String(message.subject || ''));
+    form.append('body', String(message.body || ''));
     form.append('to', JSON.stringify([{ 
-      identifier: message.contact.email,
-      display_name: message.contact.first_name || message.contact.email.split('@')[0]
+      identifier: String(message.contact.email),
+      display_name: String(message.contact.first_name || message.contact.email.split('@')[0])
     }]));
+
+    console.log(`📤 Sending email via Unipile:`);
+    console.log(`   account_id: ${accountId}`);
+    console.log(`   to: ${message.contact.email}`);
+    console.log(`   subject: ${message.subject?.substring(0, 50)}`);
 
     // Don't set Content-Type header - fetch will set it automatically with boundary
     const response = await fetch(`${UNIPILE_DSN}/emails`, {
