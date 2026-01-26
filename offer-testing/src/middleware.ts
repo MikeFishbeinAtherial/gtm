@@ -2,8 +2,19 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  // Get the password from environment variable
-  const appPassword = process.env.APP_PASSWORD || 'changeme'
+  // Skip password protection in local development
+  // This allows easy access when running locally (npm run dev)
+  if (process.env.NODE_ENV === 'development') {
+    return NextResponse.next()
+  }
+  
+  // In production, require APP_PASSWORD to be set
+  // Never use a default password - this prevents accidental exposure
+  const appPassword = process.env.APP_PASSWORD
+  if (!appPassword) {
+    console.error('❌ APP_PASSWORD not set in production! Set it in Railway environment variables.')
+    return new NextResponse('Server configuration error: APP_PASSWORD not set', { status: 500 })
+  }
   
   // Check if password is provided in the request
   const authHeader = request.headers.get('authorization')

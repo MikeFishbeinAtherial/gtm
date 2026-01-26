@@ -44,6 +44,7 @@ const SEND_DAYS = [0, 1, 2, 3, 4, 5, 6]; // All 7 days (including weekends)
 const MAX_MESSAGES_PER_DAY = 48; // Increased from 38 (safety cap <= 50/day)
 const JITTER_MIN_SECONDS = 15;
 const JITTER_MAX_SECONDS = 120;
+const MIN_SEND_INTERVAL_MINUTES = 6; // Per-account minimum spacing
 
 if (!UNIPILE_DSN || !UNIPILE_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('❌ Missing required environment variables');
@@ -178,7 +179,7 @@ async function processDueMessages() {
   console.log(`🔍 Checking for due messages... (${new Date().toISOString()})`);
 
   try {
-    // Check spacing across ALL message types (ensure 5+ minutes since last send)
+    // Check spacing per channel (LinkedIn vs email)
     // Get most recent sent message from either table
     const [networkingLastSent, regularLastSent] = await Promise.all([
       supabase
@@ -198,38 +199,24 @@ async function processDueMessages() {
         .maybeSingle() // Use maybeSingle() instead of single() to handle no results
     ]);
 
-    // Find the most recent sent time across both tables
-    let lastSentTime = null;
+    // Per-channel spacing (avoid blocking email because a LinkedIn send just happened)
+    const minIntervalMs = MIN_SEND_INTERVAL_MINUTES * 60 * 1000;
+    let canProcessNetworking = true;
+
     if (networkingLastSent.data?.sent_at) {
-      lastSentTime = new Date(networkingLastSent.data.sent_at);
-    }
-    if (regularLastSent.data?.sent_at) {
-      const regularTime = new Date(regularLastSent.data.sent_at);
-      if (!lastSentTime || regularTime > lastSentTime) {
-        lastSentTime = regularTime;
+      const lastNetworkingSent = new Date(networkingLastSent.data.sent_at);
+      const timeSinceNetworkingSend = Date.now() - lastNetworkingSent.getTime();
+      if (timeSinceNetworkingSend < minIntervalMs) {
+        const waitMinutes = Math.ceil((minIntervalMs - timeSinceNetworkingSend) / 60000);
+        console.log(`⏳ Networking too soon (${Math.floor(timeSinceNetworkingSend / 60000)}m ago). Wait ${waitMinutes}m.`);
+        canProcessNetworking = false;
       }
     }
 
-    // Check spacing (6 minutes minimum between ANY message sends)
-    if (lastSentTime) {
-      const timeSinceLastSend = Date.now() - lastSentTime.getTime();
-      const minIntervalMs = 6 * 60 * 1000; // 6 minutes minimum
-
-      if (timeSinceLastSend < minIntervalMs) {
-        const waitMinutes = Math.ceil((minIntervalMs - timeSinceLastSend) / 60000);
-        const lastSentMinutes = Math.floor(timeSinceLastSend / 60000);
-        console.log(`⏳ Too soon since last send (${lastSentMinutes}m ago). Need ${waitMinutes} more minutes for spacing.`);
-        return; // Skip this run to maintain spacing
-      }
-    }
-
-    // Process networking messages first (if any due)
-    const networkingProcessed = await processNetworkingMessages();
-    
-    // If we processed a networking message, skip regular messages this run (spacing)
-    if (networkingProcessed) {
-      console.log('✅ Processed networking message. Skipping regular messages this run for spacing.');
-      return;
+    // Process networking messages first (if any due and spacing allows)
+    let networkingProcessed = false;
+    if (canProcessNetworking) {
+      networkingProcessed = await processNetworkingMessages();
     }
 
     // Then check the send_queue (only if no networking message was sent).
@@ -789,6 +776,13 @@ async function processQueueItem(queueItem) {
       return;
     }
 
+  // Per-account spacing (don't send too fast from the same account)
+  const spacing = await checkAccountSpacing(queueItem);
+  if (!spacing.canSend) {
+    await rescheduleQueueItem(queueItem, spacing.reason, spacing.nextTime);
+    return;
+  }
+
     // Route to appropriate sending method
     let sendResult;
 
@@ -1016,6 +1010,63 @@ async function markQueueItemSkipped(queueItem, reason) {
       account_id: queueItem.account_id,
       event_type: 'skipped',
       event_data: { reason }
+    });
+}
+
+async function checkAccountSpacing(queueItem) {
+  if (!queueItem.account_id) {
+    return { canSend: true, reason: null, nextTime: null };
+  }
+
+  const { data: lastActivity } = await supabase
+    .from('account_activity')
+    .select('created_at')
+    .eq('account_id', queueItem.account_id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!lastActivity?.created_at) {
+    return { canSend: true, reason: null, nextTime: null };
+  }
+
+  const lastSent = new Date(lastActivity.created_at);
+  const elapsedMs = Date.now() - lastSent.getTime();
+  const minIntervalMs = MIN_SEND_INTERVAL_MINUTES * 60 * 1000;
+
+  if (elapsedMs < minIntervalMs) {
+    const waitMinutes = Math.ceil((minIntervalMs - elapsedMs) / 60000);
+    const nextTime = new Date(lastSent.getTime() + minIntervalMs);
+    return {
+      canSend: false,
+      reason: `Account spacing: last send ${Math.floor(elapsedMs / 60000)}m ago (need ${waitMinutes}m)`,
+      nextTime: nextTime.toISOString()
+    };
+  }
+
+  return { canSend: true, reason: null, nextTime: null };
+}
+
+async function rescheduleQueueItem(queueItem, reason, nextTime) {
+  await supabase
+    .from('send_queue')
+    .update({
+      status: 'pending',
+      scheduled_for: nextTime,
+      last_error: reason,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', queueItem.id);
+
+  await supabase
+    .from('message_events')
+    .insert({
+      send_queue_id: queueItem.id,
+      contact_id: queueItem.contact_id,
+      campaign_id: queueItem.campaign_id,
+      account_id: queueItem.account_id,
+      event_type: 'scheduled',
+      event_data: { reason, rescheduled_for: nextTime }
     });
 }
 
