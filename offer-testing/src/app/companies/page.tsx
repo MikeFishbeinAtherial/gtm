@@ -1,5 +1,12 @@
 import { createClient } from "@supabase/supabase-js"
 import { CompaniesTableClient } from "@/components/companies-table"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { TableHead } from "@/components/ui/table"
 
 const TIME_ZONE = "America/New_York"
 
