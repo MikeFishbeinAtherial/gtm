@@ -228,9 +228,3 @@ export default async function CompaniesPage() {
     </main>
   )
 }
-
-
-      </div>
-    </main>
-  )
-}

@@ -227,9 +227,3 @@ export default async function ContactsPage() {
     </main>
   )
 }
-
-
-      </div>
-    </main>
-  )
-}
