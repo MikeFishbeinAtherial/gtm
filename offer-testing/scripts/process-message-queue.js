@@ -279,29 +279,32 @@ async function processNetworkingMessages() {
       return false;
     }
 
-    // Get Unipile account
-    console.log(`📡 Fetching Unipile accounts from ${UNIPILE_DSN}/accounts`);
-    const accountsResponse = await fetch(`${UNIPILE_DSN}/accounts`, {
-      headers: {
-        'X-API-KEY': UNIPILE_API_KEY,
-        'Accept': 'application/json'
-      }
-    });
+    // Get LinkedIn account ID - prefer env variable, fallback to API fetch
+    let unipileAccountId = process.env.UNIPILE_LINKEDIN_ACCOUNT_ID;
+    
+    if (!unipileAccountId) {
+      console.log(`📡 LinkedIn account ID not in env, fetching from Unipile API...`);
+      const accountsResponse = await fetch(`${UNIPILE_DSN}/accounts`, {
+        headers: {
+          'X-API-KEY': UNIPILE_API_KEY,
+          'Accept': 'application/json'
+        }
+      });
 
-    if (!accountsResponse.ok) {
-      const errorText = await accountsResponse.text();
-      console.error(`❌ Unipile accounts API error: ${accountsResponse.status} - ${errorText}`);
-      
-      // Add Unipile error to digest queue
-      if (RESEND_API_KEY && NOTIFICATION_EMAIL) {
-        try {
-          await supabase
-            .from('notification_digest_queue')
-            .insert({
-              notification_type: 'unipile_error',
-              contact_name: null,
-              contact_linkedin_url: null,
-              message_content: `Unipile Connection Issue - LinkedIn Session Expired
+      if (!accountsResponse.ok) {
+        const errorText = await accountsResponse.text();
+        console.error(`❌ Unipile accounts API error: ${accountsResponse.status} - ${errorText}`);
+        
+        // Add Unipile error to digest queue
+        if (RESEND_API_KEY && NOTIFICATION_EMAIL) {
+          try {
+            await supabase
+              .from('notification_digest_queue')
+              .insert({
+                notification_type: 'unipile_error',
+                contact_name: null,
+                contact_linkedin_url: null,
+                message_content: `Unipile Connection Issue - LinkedIn Session Expired
 
 Error: ${accountsResponse.status} - ${errorText}
 
@@ -311,40 +314,43 @@ Action Required:
 3. Click "Reconnect" to re-authenticate
 
 The cron job will automatically resume processing once reconnected.`,
-              scheduled_at: null,
-              sent_at: null,
-              result: 'ERROR',
-              error_message: `${accountsResponse.status} - ${errorText}`,
-              message_id: null
-            });
-          console.log('📝 Added Unipile error notification to digest queue');
-        } catch (emailError) {
-          console.warn('⚠️ Failed to add Unipile error notification to queue:', emailError.message);
+                scheduled_at: null,
+                sent_at: null,
+                result: 'ERROR',
+                error_message: `${accountsResponse.status} - ${errorText}`,
+                message_id: null
+              });
+            console.log('📝 Added Unipile error notification to digest queue');
+          } catch (emailError) {
+            console.warn('⚠️ Failed to add Unipile error notification to queue:', emailError.message);
+          }
         }
+        
+        return false;
       }
+
+      const accounts = await accountsResponse.json();
+      console.log(`📊 Found ${accounts.items?.length || 0} Unipile accounts`);
       
-      return false;
+      const linkedinAccount = accounts.items?.find(acc =>
+        (acc.provider || acc.type || acc.platform || '').toUpperCase() === 'LINKEDIN'
+      );
+
+      if (!linkedinAccount) {
+        console.error('❌ No LinkedIn account found in Unipile');
+        console.log('Available accounts:', accounts.items?.map(a => ({ 
+          id: a.id, 
+          provider: a.provider || a.type || a.platform,
+          name: a.name 
+        })));
+        return false;
+      }
+
+      unipileAccountId = linkedinAccount.id;
+      console.log(`✅ Using LinkedIn account from API: ${linkedinAccount.name || linkedinAccount.id} (${unipileAccountId})`);
+    } else {
+      console.log(`✅ Using LinkedIn account from env: ${unipileAccountId}`);
     }
-
-    const accounts = await accountsResponse.json();
-    console.log(`📊 Found ${accounts.items?.length || 0} Unipile accounts`);
-    
-    const linkedinAccount = accounts.items?.find(acc =>
-      (acc.provider || acc.type || acc.platform || '').toUpperCase() === 'LINKEDIN'
-    );
-
-    if (!linkedinAccount) {
-      console.error('❌ No LinkedIn account found in Unipile');
-      console.log('Available accounts:', accounts.items?.map(a => ({ 
-        id: a.id, 
-        provider: a.provider || a.type || a.platform,
-        name: a.name 
-      })));
-      return false;
-    }
-
-    const unipileAccountId = linkedinAccount.id;
-    console.log(`✅ Using LinkedIn account: ${linkedinAccount.name || linkedinAccount.id} (${unipileAccountId})`);
 
     // Query due networking messages (only 1 per run for spacing)
     // IMPORTANT: Only from ACTIVE campaigns (not paused, draft, or completed)
@@ -1073,12 +1079,25 @@ async function rescheduleQueueItem(queueItem, reason, nextTime) {
 
 async function sendLinkedInMessage(message) {
   const contact = message.contact;
-  if (!message.account?.unipile_account_id) {
+  
+  // Fallback: Use UNIPILE_LINKEDIN_ACCOUNT_ID from env if account relation is missing
+  let accountId = message.account?.unipile_account_id;
+  
+  if (!accountId) {
+    console.warn(`⚠️  LinkedIn account relation missing, using UNIPILE_LINKEDIN_ACCOUNT_ID from env`);
+    accountId = process.env.UNIPILE_LINKEDIN_ACCOUNT_ID;
+  }
+
+  if (!accountId) {
+    console.error(`❌ Missing LinkedIn account data. message.account:`, JSON.stringify(message.account, null, 2));
+    console.error(`   UNIPILE_LINKEDIN_ACCOUNT_ID env:`, process.env.UNIPILE_LINKEDIN_ACCOUNT_ID || 'NOT SET');
     return {
       success: false,
-      error: 'Missing Unipile account ID'
+      error: `Missing Unipile LinkedIn account ID. Account data: ${JSON.stringify(message.account || {})}, Env: ${process.env.UNIPILE_LINKEDIN_ACCOUNT_ID || 'NOT SET'}`
     };
   }
+
+  accountId = String(accountId).trim();
 
   if (!contact?.linkedin_url || !contact?.linkedin_id) {
     return {
@@ -1094,7 +1113,7 @@ async function sendLinkedInMessage(message) {
   try {
     // Check current connection status via Unipile
     const status = await checkContactStatus(
-      message.account.unipile_account_id,
+      accountId,
       contact.linkedin_url
     );
 
@@ -1151,7 +1170,7 @@ async function sendLinkedInMessage(message) {
 
     // Default: DM (or inmail) via chat API
     const result = await unipileRequest('/chats', 'POST', {
-      account_id: message.account.unipile_account_id,
+      account_id: accountId,
       attendees_ids: [contact.linkedin_id],
       text: message.body,
     });
