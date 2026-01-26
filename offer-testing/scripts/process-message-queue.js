@@ -1268,12 +1268,12 @@ async function sendEmailMessage(message) {
     console.log(`   to: ${message.contact.email}`);
     console.log(`   subject: ${message.subject?.substring(0, 50)}`);
 
-    // Don't set Content-Type header - fetch will set it automatically with boundary
+    // CRITICAL: When using form-data package, must include form.getHeaders()
     const response = await fetch(`${UNIPILE_DSN}/emails`, {
       method: 'POST',
       headers: {
-        'X-API-KEY': UNIPILE_API_KEY
-        // Note: Do NOT set Content-Type - fetch will add it automatically with boundary
+        'X-API-KEY': UNIPILE_API_KEY,
+        ...form.getHeaders()  // Includes Content-Type with boundary
       },
       body: form
     });
