@@ -42,10 +42,16 @@ const TIMEZONE = 'America/New_York';
 const BUSINESS_HOURS_START = 7; // 7 AM ET (earlier start)
 const BUSINESS_HOURS_END = 18; // 6 PM ET
 const SEND_DAYS = [0, 1, 2, 3, 4, 5, 6]; // All 7 days (including weekends)
-const MAX_MESSAGES_PER_DAY = 48; // Increased from 38 (safety cap <= 50/day)
 const JITTER_MIN_SECONDS = 15;
 const JITTER_MAX_SECONDS = 120;
 const MIN_SEND_INTERVAL_MINUTES = 6; // Per-account minimum spacing
+
+// Default per-account daily caps (override per account in DB)
+const DEFAULT_DAILY_LIMITS = {
+  email: 20,
+  linkedin_dm: 50,
+  linkedin_connect: 20,
+};
 
 if (!UNIPILE_DSN || !UNIPILE_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('❌ Missing required environment variables');
@@ -263,22 +269,6 @@ async function processNetworkingMessages() {
       return false;
     }
 
-    // Daily safety cap (global across networking_outreach)
-    const { startUtc, endUtc } = getDayBoundsUtc(nowInTz);
-    const { count: sentToday, error: sentCountError } = await supabase
-      .from('networking_outreach')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'sent')
-      .gte('sent_at', startUtc.toISOString())
-      .lt('sent_at', endUtc.toISOString());
-
-    if (sentCountError) {
-      console.warn('⚠️  Could not check daily send count:', sentCountError.message);
-    } else if ((sentToday || 0) >= MAX_MESSAGES_PER_DAY) {
-      console.log(`🛑 Daily limit reached (${sentToday}/${MAX_MESSAGES_PER_DAY}) - skipping send`);
-      return false;
-    }
-
     // Get LinkedIn account ID - prefer env variable, fallback to API fetch
     let unipileAccountId = process.env.UNIPILE_LINKEDIN_ACCOUNT_ID;
     
@@ -442,6 +432,18 @@ The cron job will automatically resume processing once reconnected.`,
         })
         .eq('id', outreach.id);
       return false; // Skipped due to block list
+    }
+
+    // Per-account daily cap (LinkedIn DM)
+    const accountRecord = await getAccountByUnipileId(unipileAccountId);
+    if (!accountRecord) {
+      console.warn(`⚠️  No accounts row found for Unipile ID ${unipileAccountId}. Daily caps skipped.`);
+    } else {
+      const dailyCap = await checkDailyCapForAccount(accountRecord.id, accountRecord, 'message', nowInTz);
+      if (!dailyCap.canSend) {
+        await rescheduleNetworkingOutreach(outreach, dailyCap.reason, dailyCap.nextTime);
+        return false;
+      }
     }
 
     // CRITICAL: Check if we've already sent a message to this LinkedIn ID
@@ -704,6 +706,21 @@ The cron job will automatically resume processing once reconnected.`,
         unipileChatId
       });
 
+      // Log activity for per-account daily caps (LinkedIn DM)
+      if (accountRecord?.id) {
+        await supabase
+          .from('account_activity')
+          .insert({
+            account_id: accountRecord.id,
+            message_id: null,
+            contact_id: null,
+            action_type: 'message',
+            status: 'success',
+            error_message: null,
+            created_at: sentAt
+          });
+      }
+
       // Immediate email notifications disabled - using 3x daily digest instead
       // await sendNetworkingLifecycleEmail({
       //   stage: 'sent',
@@ -783,12 +800,19 @@ async function processQueueItem(queueItem) {
       return;
     }
 
-  // Per-account spacing (don't send too fast from the same account)
-  const spacing = await checkAccountSpacing(queueItem);
-  if (!spacing.canSend) {
-    await rescheduleQueueItem(queueItem, spacing.reason, spacing.nextTime);
-    return;
-  }
+    // Per-account spacing (don't send too fast from the same account)
+    const spacing = await checkAccountSpacing(queueItem);
+    if (!spacing.canSend) {
+      await rescheduleQueueItem(queueItem, spacing.reason, spacing.nextTime);
+      return;
+    }
+
+    // Per-account + per-channel daily cap
+    const dailyCap = await checkDailyCap(queueItem);
+    if (!dailyCap.canSend) {
+      await rescheduleQueueItem(queueItem, dailyCap.reason, dailyCap.nextTime);
+      return;
+    }
 
     // Route to appropriate sending method
     let sendResult;
@@ -1052,6 +1076,140 @@ async function checkAccountSpacing(queueItem) {
   }
 
   return { canSend: true, reason: null, nextTime: null };
+}
+
+function getDailyLimitForAccount(account, actionType) {
+  const safeAccount = account || {};
+  const toNumber = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+  };
+
+  if (actionType === 'email') {
+    const override = toNumber(safeAccount.daily_limit_email);
+    return override !== null
+      ? override
+      : DEFAULT_DAILY_LIMITS.email;
+  }
+
+  if (actionType === 'connection_request') {
+    const override = toNumber(safeAccount.daily_limit_linkedin_connect);
+    return override !== null
+      ? override
+      : DEFAULT_DAILY_LIMITS.linkedin_connect;
+  }
+
+  // Treat DM + InMail as the same cap
+  const override = toNumber(safeAccount.daily_limit_linkedin_dm);
+  return override !== null
+    ? override
+    : DEFAULT_DAILY_LIMITS.linkedin_dm;
+}
+
+async function checkDailyCap(queueItem) {
+  if (!queueItem.account_id) {
+    return { canSend: true, reason: null, nextTime: null };
+  }
+
+  const actionType = getActionType(queueItem);
+  const dailyLimit = getDailyLimitForAccount(queueItem.account, actionType);
+
+  // Allow unlimited if limit is null/undefined
+  if (dailyLimit === null || dailyLimit === undefined) {
+    return { canSend: true, reason: null, nextTime: null };
+  }
+
+  return checkDailyCapForAccount(queueItem.account_id, queueItem.account, actionType);
+}
+
+function getNextDayStartUtc(nowInTz) {
+  const nextDay = new Date(nowInTz);
+  nextDay.setDate(nextDay.getDate() + 1);
+  nextDay.setHours(BUSINESS_HOURS_START, 0, 0, 0);
+
+  const offsetMs = Date.now() - getNowInTimeZone().getTime();
+  return new Date(nextDay.getTime() + offsetMs);
+}
+
+async function checkDailyCapForAccount(accountId, account, actionType, nowInTzOverride) {
+  if (!accountId) {
+    return { canSend: true, reason: null, nextTime: null };
+  }
+
+  const dailyLimit = getDailyLimitForAccount(account, actionType);
+  if (dailyLimit === null || dailyLimit === undefined) {
+    return { canSend: true, reason: null, nextTime: null };
+  }
+
+  const nowInTz = nowInTzOverride || getNowInTimeZone();
+  const { startUtc, endUtc } = getDayBoundsUtc(nowInTz);
+
+  const { count: sentToday, error } = await supabase
+    .from('account_activity')
+    .select('id', { count: 'exact', head: true })
+    .eq('account_id', accountId)
+    .eq('action_type', actionType)
+    .eq('status', 'success')
+    .gte('created_at', startUtc.toISOString())
+    .lt('created_at', endUtc.toISOString());
+
+  if (error) {
+    console.warn('⚠️  Could not check daily cap:', error.message);
+    return { canSend: true, reason: null, nextTime: null };
+  }
+
+  if ((sentToday || 0) >= dailyLimit) {
+    const nextTime = getNextDayStartUtc(nowInTz);
+    return {
+      canSend: false,
+      reason: `Daily cap reached for ${actionType} (${sentToday}/${dailyLimit})`,
+      nextTime: nextTime.toISOString()
+    };
+  }
+
+  return { canSend: true, reason: null, nextTime: null };
+}
+
+async function getAccountByUnipileId(unipileAccountId) {
+  if (!unipileAccountId) return null;
+
+  const { data, error } = await supabase
+    .from('accounts')
+    .select('*')
+    .eq('unipile_account_id', unipileAccountId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('⚠️  Could not load account by Unipile ID:', error.message);
+    return null;
+  }
+
+  return data || null;
+}
+
+async function rescheduleNetworkingOutreach(outreach, reason, nextTime) {
+  await supabase
+    .from('networking_outreach')
+    .update({
+      status: 'pending',
+      scheduled_at: nextTime,
+      skip_reason: reason,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', outreach.id);
+
+  await logSendAudit({
+    outreach,
+    connection: null,
+    stage: 'rescheduled',
+    statusBefore: 'pending',
+    statusAfter: 'pending',
+    statusUpdateSuccess: true,
+    errorMessage: reason,
+    metadata: { rescheduled_for: nextTime }
+  });
 }
 
 async function rescheduleQueueItem(queueItem, reason, nextTime) {
