@@ -1416,10 +1416,12 @@ async function sendEmailMessage(message) {
     form.append('account_id', accountId);
     form.append('subject', String(message.subject || ''));
     form.append('body', String(message.body || ''));
-    form.append('to', JSON.stringify([{ 
-      identifier: String(message.contact.email),
-      display_name: String(message.contact.first_name || message.contact.email.split('@')[0])
-    }]));
+    // Unipile expects array fields like to[0][identifier], not JSON
+    form.append('to[0][identifier]', String(message.contact.email));
+    form.append(
+      'to[0][display_name]',
+      String(message.contact.first_name || message.contact.email.split('@')[0])
+    );
 
     console.log(`📤 Sending email via Unipile:`);
     console.log(`   account_id: ${accountId}`);
@@ -1427,11 +1429,13 @@ async function sendEmailMessage(message) {
     console.log(`   subject: ${message.subject?.substring(0, 50)}`);
 
     // CRITICAL: When using form-data package, must include form.getHeaders()
+    const contentLength = form.getLengthSync();
     const response = await fetch(`${UNIPILE_DSN}/emails`, {
       method: 'POST',
       headers: {
         'X-API-KEY': UNIPILE_API_KEY,
-        ...form.getHeaders()  // Includes Content-Type with boundary
+        ...form.getHeaders(),  // Includes Content-Type with boundary
+        'Content-Length': String(contentLength)
       },
       body: form
     });
