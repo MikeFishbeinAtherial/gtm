@@ -1414,9 +1414,11 @@ async function sendEmailMessage(message) {
     // Use native FormData (Node.js 18+) which is compatible with fetch
     const form = new FormData();
     
+    const formattedBody = formatEmailBody(message.body || '');
+
     form.append('account_id', accountId);
     form.append('subject', String(message.subject || ''));
-    form.append('body', String(message.body || ''));
+    form.append('body', formattedBody);
     // Unipile expects array fields like to[0][identifier], not JSON
     form.append('to[0][identifier]', String(message.contact.email));
     form.append(
@@ -1461,6 +1463,21 @@ async function sendEmailMessage(message) {
       error: error.message
     };
   }
+}
+
+function formatEmailBody(rawBody) {
+  const body = String(rawBody || '').trim();
+  if (!body) return '';
+
+  // If there are no line breaks, add paragraph breaks between sentences.
+  const withParagraphs = body.includes('\n')
+    ? body
+    : body
+        .replace(/([.!?])\s+/g, '$1\n\n')
+        .replace(/\n{3,}/g, '\n\n');
+
+  // Normalize to CRLF for email formatting.
+  return withParagraphs.replace(/\r?\n/g, '\r\n');
 }
 
 function getActionType(message) {
