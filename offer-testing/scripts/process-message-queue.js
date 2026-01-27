@@ -1414,17 +1414,19 @@ async function sendEmailMessage(message) {
     // Use native FormData (Node.js 18+) which is compatible with fetch
     const form = new FormData();
     
-    const formattedBody = formatEmailBody(message.body || '');
+    const formatted = formatEmailBody(message.body || '');
 
     form.append('account_id', accountId);
     form.append('subject', String(message.subject || ''));
-    form.append('body', formattedBody);
+    form.append('body', formatted.body);
     // Unipile expects array fields like to[0][identifier], not JSON
     form.append('to[0][identifier]', String(message.contact.email));
     form.append(
       'to[0][display_name]',
       String(message.contact.first_name || message.contact.email.split('@')[0])
     );
+    form.append('custom_headers[0][name]', 'Content-Type');
+    form.append('custom_headers[0][value]', formatted.contentType);
 
     console.log(`📤 Sending email via Unipile:`);
     console.log(`   account_id: ${accountId}`);
@@ -1467,17 +1469,42 @@ async function sendEmailMessage(message) {
 
 function formatEmailBody(rawBody) {
   const body = String(rawBody || '').trim();
-  if (!body) return '';
+  if (!body) {
+    return { body: '', contentType: 'text/plain; charset=utf-8' };
+  }
+
+  const normalized = body.replace(/\r\n/g, '\n');
+  const looksLikeHtml = /<\/?(html|body|p|br|div|span|strong|em|ul|ol|li|a)\b/i.test(normalized);
+
+  if (looksLikeHtml) {
+    return { body: normalized, contentType: 'text/html; charset=utf-8' };
+  }
 
   // If there are no line breaks, add paragraph breaks between sentences.
-  const withParagraphs = body.includes('\n')
-    ? body
-    : body
+  const withParagraphs = normalized.includes('\n')
+    ? normalized
+    : normalized
         .replace(/([.!?])\s+/g, '$1\n\n')
         .replace(/\n{3,}/g, '\n\n');
 
-  // Normalize to CRLF for email formatting.
-  return withParagraphs.replace(/\r?\n/g, '\r\n');
+  return {
+    body: plainTextToHtml(withParagraphs),
+    contentType: 'text/html; charset=utf-8'
+  };
+}
+
+function plainTextToHtml(text) {
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  const paragraphs = escaped
+    .split(/\n{2,}/)
+    .map((para) => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+    .join('');
+
+  return `<html><body>${paragraphs}</body></html>`;
 }
 
 function getActionType(message) {
