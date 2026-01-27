@@ -20,6 +20,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import FormData from 'form-data';
+import axios from 'axios';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1429,29 +1430,32 @@ async function sendEmailMessage(message) {
     console.log(`   subject: ${message.subject?.substring(0, 50)}`);
 
     // CRITICAL: When using form-data package, must include form.getHeaders()
-    const contentLength = form.getLengthSync();
-    const response = await fetch(`${UNIPILE_DSN}/emails`, {
-      method: 'POST',
-      headers: {
-        'X-API-KEY': UNIPILE_API_KEY,
-        ...form.getHeaders(),  // Includes Content-Type with boundary
-        'Content-Length': String(contentLength)
-      },
-      body: form
-    });
+    const response = await axios.post(
+      `${UNIPILE_DSN}/emails`,
+      form,
+      {
+        headers: {
+          ...form.getHeaders(), // Includes Content-Type with boundary
+          'X-API-KEY': UNIPILE_API_KEY
+        },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity
+      }
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Unipile API error (${response.status}): ${errorText}`);
-    }
-
-    const result = await response.json();
+    const result = response.data;
 
     return {
       success: true,
       message_id: result.tracking_id || result.id || result.provider_id
     };
   } catch (error) {
+    if (error?.response?.data) {
+      return {
+        success: false,
+        error: `Unipile API error (${error.response.status}): ${JSON.stringify(error.response.data)}`
+      };
+    }
     return {
       success: false,
       error: error.message
