@@ -27,7 +27,7 @@ What if AI could do it for every company in your portfolio simultaneously?
 
 We built a guide showing how to set this up yourself. No vendor dependency, runs on your schedule, scales to hundreds of companies.
 
-A hedge fund used this approach and improved earnings prediction accuracy 23%.
+A hedge fund client of ours expanded the number of companies in their research universe 8x using this approach.
 
 Want it? Just reply "send guide".
 

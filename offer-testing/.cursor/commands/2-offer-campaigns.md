@@ -17,18 +17,25 @@ Create a campaign for an existing offer with signals, messaging, and copy variat
 ## Input Required
 
 ```
-/offer-campaign {offer-slug} {campaign-name}
+/offer-campaign {offer-slug}
 ```
 
 **Optional parameters:**
 - `--approach` - Messaging framework: `pvp` or `usecase` (default: ask)
+- `--type` - Campaign type: `cold` or `networking` (default: ask)
+- `--channel` - Channel: `email`, `linkedin`, or `multi` (default: ask)
+- `--signal` - Primary signal (e.g., "hiring", "tech-stack", "funding") (default: ask)
+- `--icp` - ICP target description (e.g., "pmre-companies", "hedge-funds") (default: ask)
 
 **Examples:**
 ```
-/offer-campaign sales-roleplay-trainer hiring-signal-q1
-/offer-campaign sales-roleplay-trainer pvp-benchmarks --approach pvp
-/offer-campaign sales-roleplay-trainer tech-stack-targeting
+/offer-campaign roleplay --type cold --channel linkedin --signal hiring --icp pmre-companies
+/offer-campaign roleplay --type networking --channel multi --signal hiring --icp hedge-funds
+/offer-campaign roleplay
 ```
+
+**Note:** Campaign name and slug will be auto-generated from the collected metadata in the format:
+`{type}-{offer-slug}-{channel}-{signal}-{icp}-{account-slug}`
 
 ---
 
@@ -73,13 +80,62 @@ Display summary:
 💡 Problem: {short description}
 ```
 
-### Step 2: Generate Campaign Parameters
+### Step 2: Collect Campaign Metadata & Generate Parameters
 
-**NEW APPROACH:** Generate intelligent campaign parameters based on the offer, then present for approval.
+**REQUIRED METADATA:** Every campaign must include the following information:
 
-Analyze the offer positioning and generate:
+1. **Campaign Type** (`campaign_type`):
+   - `cold` = Cold outreach to new prospects
+   - `networking` = Networking campaign to existing connections
+   - **Default:** Ask user if not provided
 
-**Campaign Name:** Based on primary signal (e.g., "hiring-signal-new-sales-team")
+2. **Offer Association** (`offer_slug`):
+   - Automatically extracted from command input
+   - Used to link campaign to offer in database
+
+3. **Channel** (`channel`):
+   - `email` = Email only
+   - `linkedin` = LinkedIn only  
+   - `multi` = Both email and LinkedIn
+   - **Recommendation:** Based on buyer profile
+     - C-level buyers → LinkedIn
+     - Multiple buyers → Multi-channel
+     - IT/Technical → Email
+
+4. **Account Names & IDs** (`account_ids`):
+   - **REQUIRED:** Query Supabase `accounts` table to list available accounts
+   - For email campaigns: Show email accounts (type='email')
+   - For LinkedIn campaigns: Show LinkedIn accounts (type='linkedin')
+   - For multi-channel: Show both types
+   - User must select which account(s) to use
+   - Store both account IDs and account names in campaign metadata
+   - Format: `[{id: "...", name: "...", type: "email|linkedin"}, ...]`
+
+5. **Signal** (`signal`):
+   - Primary signal being targeted (e.g., "hiring", "tech-stack", "funding", "icp-match")
+   - Used in campaign name generation
+   - **Default:** Ask user if not provided
+
+6. **ICP Target** (`icp_target`):
+   - Specific ICP segment being targeted (e.g., "pmre-companies", "hedge-funds", "b2b-saas")
+   - Used in campaign name generation
+   - Extract from offer positioning if available
+   - **Default:** Ask user if not provided
+
+**Generate Campaign Name & Slug:**
+
+Format: `{type}-{offer-slug}-{channel}-{signal}-{icp}-{account-slug}`
+
+Example: `cold-roleplay-linkedin-hiring-pmre-mike-atherial`
+
+**Rules:**
+- All components must be URL-friendly (lowercase, hyphens only)
+- Account slug = first part of account name/email (e.g., "mike" from "mike@atherial.ai")
+- If multiple accounts, use primary account slug
+- Signal should be short (1-2 words max)
+- ICP target should be short (1-2 words max)
+
+**Other Parameters:**
 
 **Goal:** Auto-suggest based on strongest signal (e.g., "Target companies hiring sales reps")
 
@@ -87,11 +143,6 @@ Analyze the offer positioning and generate:
 - Narrow signal (very specific) → Small (20-50)
 - Medium signal → Medium (50-100)
 - Broad signal → Large (100-200)
-
-**Channel:** Recommend based on buyer profile
-- C-level buyers → LinkedIn (they're active there)
-- Multiple buyers → Multi-channel
-- IT/Technical → Email
 
 **Timeline:** Recommend based on target size
 - Small → Sprint (1-2 weeks)
@@ -220,17 +271,29 @@ Compile everything into a campaign plan document:
 ```markdown
 # Campaign Plan: {Campaign Name}
 
+## Campaign Metadata
+
+**Campaign Slug:** `{campaign-slug}`  
+**Campaign Type:** {cold/networking}  
+**Offer:** {offer name} ({offer-slug})  
+**Channel:** {email/linkedin/multi}  
+**Primary Signal:** {signal}  
+**ICP Target:** {icp-target}  
+
+**Sending Accounts:**
+- {Account Name} ({Account Type}) - ID: {account-id}
+- {Account Name} ({Account Type}) - ID: {account-id}
+
 ## Overview
-- **Offer:** {offer name}
 - **Goal:** {campaign goal}
 - **Target:** {target size} companies
-- **Channel:** {LinkedIn/Email/Multi}
 - **Timeline:** {sprint/standard/extended}
 - **Approach:** {PVP/Use Case/Problem}
 
 ## ICP (from Offer)
 - Company: {size}, {industry}, {geography}
 - Buyer: {titles} in {department}
+- **Target Segment:** {icp-target}
 
 ## Signals
 1. {Signal 1} - Priority: {high/medium/low}
@@ -291,6 +354,12 @@ Save to `offers/{offer-slug}/campaigns/{campaign-slug}/{campaign-slug}-campaign-
    • Campaign saved with ID: {uuid}
    • Status: draft
    • Linked to offer: {offer name}
+   • Campaign type: {cold/networking}
+   • Channel: {email/linkedin/multi}
+   • Accounts: {account names and IDs}
+   • Signal: {signal}
+   • ICP Target: {icp-target}
+   • Campaign slug: {campaign-slug}
 
 ⏭️  Next Steps:
    1. Review campaign plan and copy variations
@@ -325,21 +394,37 @@ Save to `offers/{offer-slug}/campaigns/{campaign-slug}/{campaign-slug}-campaign-
 ## Example Usage
 
 ```
-User: /offer-campaign sales-roleplay-trainer hiring-signal-q1
+User: /offer-campaign roleplay
 
 Cursor:
 📋 Creating campaign for: AI Sales Roleplay Trainer
 👥 ICP: B2B SaaS, 20-100 employees, United States
 🎯 Buyer: VP Sales, Sales Director
 
+Campaign type? (cold/networking)
+User: cold
+
+Channel? (email/linkedin/multi)
+User: linkedin
+
+Primary signal? (e.g., hiring, tech-stack, funding, icp-match)
+User: hiring
+
+ICP target segment? (e.g., pmre-companies, hedge-funds, b2b-saas)
+User: pmre-companies
+
+Available LinkedIn accounts:
+1. Mike Fishbein (linkedin) - ID: eSaTTfPuRx6t131-4hjfSg
+2. [Other LinkedIn account] - ID: ...
+
+Which account(s) to use?
+User: 1
+
 Campaign goal?
 User: Target companies hiring sales reps
 
 Cursor: Target size?
 User: Medium (50-100 companies)
-
-Cursor: Channel?
-User: LinkedIn only
 
 [Walks through signal brainstorming...]
 
@@ -354,11 +439,59 @@ User: PVP
 
 Cursor: Generated 2 email variations and 2 LinkedIn variations
 
-✅ Campaign Created: hiring-signal-q1
-Next: /offer-launch sales-roleplay-trainer hiring-signal-q1
+✅ Campaign Created: cold-roleplay-linkedin-hiring-pmre-mike
+📋 Campaign Slug: cold-roleplay-linkedin-hiring-pmre-mike
+💾 Database ID: {uuid}
+📧 Account: Mike Fishbein (eSaTTfPuRx6t131-4hjfSg)
+
+Next: /offer-launch roleplay cold-roleplay-linkedin-hiring-pmre-mike
 ```
 
 ---
+
+## Campaign Naming Convention
+
+**REQUIRED:** Every campaign must follow this structured naming format:
+
+**Format:** `{type}-{offer-slug}-{channel}-{signal}-{icp}-{account-slug}`
+
+**Components:**
+- `{type}` - Campaign type: `cold` or `networking`
+- `{offer-slug}` - Offer identifier (from command input)
+- `{channel}` - Channel: `email`, `linkedin`, or `multi`
+- `{signal}` - Primary signal (1-2 words, e.g., `hiring`, `tech-stack`, `funding`)
+- `{icp}` - ICP target segment (1-2 words, e.g., `pmre-companies`, `hedge-funds`)
+- `{account-slug}` - Account identifier (first part of account name/email)
+
+**Examples:**
+- `cold-roleplay-linkedin-hiring-pmre-mike`
+- `networking-finance-email-funding-hedge-funds-mike-atherial`
+- `cold-roleplay-multi-hiring-b2b-saas-mike`
+
+**Why This Format:**
+- Easy to identify campaign type, offer, channel, and targeting at a glance
+- Prevents naming conflicts
+- Makes it easy to filter/search campaigns
+- All metadata visible in filename
+
+## Database Storage
+
+When creating a campaign, the following metadata is stored in Supabase:
+
+**Campaigns Table:**
+- `campaign_slug` (TEXT, UNIQUE) - The structured campaign slug
+- `account_ids` (JSONB) - Array of account objects: `[{"id": "...", "name": "...", "type": "email|linkedin"}, ...]`
+- `target_criteria` (JSONB) - Includes `signal` and `icp_target` fields:
+  ```json
+  {
+    "signal": "hiring",
+    "icp_target": "pmre-companies",
+    "signals": [...],
+    ...
+  }
+  ```
+
+**Migration Required:** Run `scripts/add-campaign-metadata-fields.sql` to add new columns to existing databases.
 
 ## Related Files
 
@@ -368,5 +501,6 @@ Next: /offer-launch sales-roleplay-trainer hiring-signal-q1
 - **Previous Command:** `.cursor/commands/new-offer.md`
 - **Next Command:** `.cursor/commands/offer-launch.md`
 - **Database Schema:** `scripts/setup-db.sql` (campaigns table)
+- **Migration Script:** `scripts/add-campaign-metadata-fields.sql`
 - **Types:** `src/lib/types/campaign.ts`
 

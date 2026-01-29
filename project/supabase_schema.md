@@ -403,7 +403,11 @@ CREATE TABLE campaigns (
     -- Campaign Configuration
     channel TEXT NOT NULL CHECK (channel IN ('email', 'linkedin', 'multi')),
     campaign_type TEXT DEFAULT 'cold_outreach' CHECK (campaign_type IN ('networking', 'cold_outreach')),
-    account_id UUID REFERENCES accounts(id),  -- Which account to send from
+    account_id UUID REFERENCES accounts(id),  -- Primary account to send from (for single-channel campaigns)
+    
+    -- Campaign Metadata (REQUIRED for all campaigns)
+    campaign_slug TEXT UNIQUE,  -- Structured slug: {type}-{offer}-{channel}-{signal}-{icp}-{account}
+    account_ids JSONB,  -- Array of account IDs and names: [{"id": "...", "name": "...", "type": "email|linkedin"}, ...]
     
     -- Targeting
     target_criteria JSONB,
@@ -413,7 +417,16 @@ CREATE TABLE campaigns (
         "contact_status": ["ready", "enriched"],
         "min_fit_score": 7,
         "connection_degrees": [2, 3],
-        "exclude_1st_degree": true
+        "exclude_1st_degree": true,
+        "signal": "hiring",  -- Primary signal being targeted
+        "icp_target": "pmre-companies",  -- Specific ICP segment
+        "signals": [  -- Detailed signal definitions
+            {
+                "type": "HIRING",
+                "description": "Hiring 2+ sales roles",
+                "priority": "HIGH"
+            }
+        ]
     }
     */
     
@@ -481,7 +494,10 @@ CREATE TABLE campaigns (
 CREATE INDEX idx_campaigns_offer ON campaigns(offer_id);
 CREATE INDEX idx_campaigns_status ON campaigns(status);
 CREATE INDEX idx_campaigns_account ON campaigns(account_id);
+CREATE INDEX idx_campaigns_slug ON campaigns(campaign_slug);
 ```
+
+**Migration Required:** Run `scripts/add-campaign-metadata-fields.sql` to add `campaign_slug` and `account_ids` columns to existing databases.
 
 ---
 

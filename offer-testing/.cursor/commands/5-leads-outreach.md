@@ -18,8 +18,7 @@ The scheduling system is now live! Messages are scheduled at campaign creation t
 2. **Schedule with smart spacing** → Use MessageScheduler service to spread messages over time
 3. **Insert to database** → Store messages with `scheduled_at` timestamps and `status = 'pending'`
 4. **Railway cron sends automatically** → Every 5 minutes, cron job sends due messages via Unipile
-5. **Real-time notifications** → N8N webhooks send Slack/email alerts for each message sent
-6. **Monitor progress** → Use Supabase views to track sending progress and results
+5. **Monitor progress** → Use Supabase views to track sending progress and results, same should show up in our new user intrface web app. 
 
 ---
 
@@ -29,8 +28,8 @@ The scheduling system is now live! Messages are scheduled at campaign creation t
 - ✅ Campaign exists (`/offer-campaign` completed)
 - ✅ Leads found (`/offer-launch` completed)
 - ✅ Campaign status = 'ready'
-- ✅ Unipile API key set in `.env`
-- ✅ LinkedIn account connected in Unipile
+- ✅ Unipile API key set in `.env` and Railway
+- ✅ LinkedIn and/or email account connected in Unipile
 
 ---
 
@@ -63,10 +62,11 @@ When launching a campaign, the system automatically schedules messages:
 1. **Cursor calls Scheduler Service** when campaign is created
 2. **Scheduler queries existing queue** - finds last scheduled message per channel
 3. **Scheduler assigns `scheduled_at`** to each new message:
-   - 5-10 min random intervals between messages
-   - Max 40 LinkedIn messages per business day
-   - Business hours only (9 AM - 5 PM)
-   - Weekdays only (Mon-Fri)
+   - 6-16 min random intervals between messages
+   - Max 40 LinkedIn messages per day per account
+   - Max 20 emails per businesday per account
+   - Business hours only (9 AM - 5 PM) for cold email campaigns, networking linkedin campaigns can differ
+   - Weekdays only (Mon-Fri) for cold email campaigns, networking linkedin campaigns can differ
 4. **Messages inserted to Supabase** with their scheduled timestamps
 
 ### Key File: `src/lib/services/message-scheduler.ts`
@@ -113,7 +113,7 @@ Choose the appropriate campaign type for your outreach:
 
 - Runs every 5 minutes
 - Queries: `WHERE scheduled_at <= NOW() AND status = 'pending' LIMIT 1`
-- Sends only 1 message per cron run (spaced 5-10 min apart)
+- Sends only 1 message per cron run (spaced 6-15 min apart)
 - Respects campaign type rules for connection messaging
 - Script: `scripts/process-message-queue.js`
 

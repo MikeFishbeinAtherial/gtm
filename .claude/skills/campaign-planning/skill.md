@@ -55,21 +55,57 @@ Select framework based on offer type:
 3. **Problem-Focused** - Lead with the pain point
    - Best for: Urgent problems, clear consequences
 
-### Step 4: Create Campaign Strategy
+### Step 4: Collect Campaign Metadata
+
+**REQUIRED:** Every campaign must include:
+
+1. **Campaign Type:** `cold` or `networking`
+2. **Offer Slug:** From command input
+3. **Channel:** `email`, `linkedin`, or `multi`
+4. **Account IDs & Names:** Query Supabase `accounts` table to list available accounts
+   - For email: Show email accounts (type='email')
+   - For LinkedIn: Show LinkedIn accounts (type='linkedin')
+   - For multi: Show both types
+   - User selects which account(s) to use
+   - Store as: `[{"id": "...", "name": "...", "type": "email|linkedin"}, ...]`
+5. **Primary Signal:** Short description (e.g., "hiring", "tech-stack", "funding")
+6. **ICP Target:** Specific segment (e.g., "pmre-companies", "hedge-funds")
+
+### Step 5: Generate Campaign Name & Slug
+
+**Format:** `{type}-{offer-slug}-{channel}-{signal}-{icp}-{account-slug}`
+
+**Example:** `cold-roleplay-linkedin-hiring-pmre-mike`
+
+**Rules:**
+- All components URL-friendly (lowercase, hyphens only)
+- Account slug = first part of account name/email
+- Signal = 1-2 words max
+- ICP target = 1-2 words max
+
+### Step 6: Create Campaign Strategy
 
 For each campaign idea, document:
-- Campaign name and slug
+- Campaign name and slug (using structured format above)
+- Campaign type (cold/networking)
+- Channel (email/linkedin/multi)
+- Account IDs and names
 - Primary signal (how to find companies)
+- ICP target segment
 - Secondary signals (additional filters)
 - Messaging framework choice
 - Key hooks/angles to test
 
-### Step 5: Save Campaign Files
+### Step 7: Save Campaign Files
 
 ```
 offers/{offer-slug}/campaigns/{campaign-slug}/
-└── strategy.md    # Signals + messaging framework
+├── {campaign-slug}-campaign-plan.md    # Full campaign metadata + overview
+├── {campaign-slug}-signals.md          # Signal definitions
+└── {campaign-slug}-strategy.md          # Messaging framework details
 ```
+
+**File naming:** All files must include the full campaign-slug in their names to ensure uniqueness and easy identification.
 
 ### Step 6: Recommend Next Steps
 

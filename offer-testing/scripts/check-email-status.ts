@@ -31,6 +31,7 @@ async function checkEmails() {
     .select(`
       id,
       email,
+      linkedin_url,
       first_name,
       last_name,
       companies!inner(id, name, priority)
@@ -46,10 +47,15 @@ async function checkEmails() {
   const total = contacts?.length || 0;
   const withEmail = contacts?.filter((c: any) => c.email).length || 0;
   const withoutEmail = total - withEmail;
+  const withLinkedin = contacts?.filter((c: any) => c.linkedin_url).length || 0;
+  const withEmailAndLinkedin =
+    contacts?.filter((c: any) => c.email && c.linkedin_url).length || 0;
 
   console.log(`Total Contacts: ${total}`);
   console.log(`✅ With Email: ${withEmail} (${total > 0 ? Math.round((withEmail/total)*100) : 0}%)`);
   console.log(`❌ Without Email: ${withoutEmail} (${total > 0 ? Math.round((withoutEmail/total)*100) : 0}%)`);
+  console.log(`🔗 With LinkedIn URL: ${withLinkedin} (${total > 0 ? Math.round((withLinkedin/total)*100) : 0}%)`);
+  console.log(`✅ With Email + LinkedIn: ${withEmailAndLinkedin} (${total > 0 ? Math.round((withEmailAndLinkedin/total)*100) : 0}%)`);
   console.log(`\n💰 FullEnrich Credits Remaining: 67`);
   console.log(`📧 Credits Needed for Remaining: ${withoutEmail} (1 credit per email)`);
   

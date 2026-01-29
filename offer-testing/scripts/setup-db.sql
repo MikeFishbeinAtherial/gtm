@@ -249,10 +249,14 @@ CREATE TABLE campaigns (
     -- Channel
     channel TEXT NOT NULL CHECK (channel IN ('email', 'linkedin', 'multi')),
     campaign_type TEXT DEFAULT 'cold_outreach' CHECK (campaign_type IN ('networking', 'cold_outreach')),
-    account_id UUID REFERENCES accounts(id),
+    account_id UUID REFERENCES accounts(id),  -- Primary account (for single-channel campaigns)
+    
+    -- Campaign Metadata (REQUIRED)
+    campaign_slug TEXT UNIQUE,  -- Structured slug: {type}-{offer}-{channel}-{signal}-{icp}-{account}
+    account_ids JSONB,  -- Array of account IDs and names: [{"id": "...", "name": "...", "type": "email|linkedin"}, ...]
     
     -- Configuration
-    target_criteria JSONB,
+    target_criteria JSONB,  -- Includes signal, icp_target, and other targeting criteria
     sequence_config JSONB,
     scheduling_config JSONB DEFAULT '{
         "daily_limit": 40,

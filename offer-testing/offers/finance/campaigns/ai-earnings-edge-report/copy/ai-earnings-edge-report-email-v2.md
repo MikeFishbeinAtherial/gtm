@@ -25,7 +25,7 @@ Manual earnings call analysis takes hours per company.
 
 AI does it in seconds and catches alpha humans miss. Management tone, answer patterns, topic avoidance all signal surprises before they hit.
 
-A hedge fund improved earnings prediction accuracy 23% using AI analysis.
+A hedge fund client of ours improved earnings prediction accuracy 23% using AI analysis.
 
 Want a free guide on how to get AI to do this on thousands of companies automatically, immediately after earnings? Just reply yes and I'll send it to you.
 
