@@ -497,7 +497,7 @@ CREATE INDEX idx_campaigns_account ON campaigns(account_id);
 CREATE INDEX idx_campaigns_slug ON campaigns(campaign_slug);
 ```
 
-**Migration Required:** Run `scripts/add-campaign-metadata-fields.sql` to add `campaign_slug` and `account_ids` columns to existing databases.
+**Migration Required:** Run `scripts/apply-campaign-columns.sql` to add `campaign_slug`, `account_ids`, and `target_criteria` to existing databases.
 
 ---
 
@@ -636,6 +636,9 @@ CREATE INDEX idx_messages_send_queue ON messages(send_queue_id);
 CREATE INDEX idx_messages_status ON messages(status);
 CREATE INDEX idx_messages_scheduled ON messages(scheduled_at) WHERE status = 'pending';
 ```
+
+**Note:** `messages` stores the content + intent (what we plan to send).  
+Actual sending is driven by `send_queue`.
 
 ---
 
@@ -1145,6 +1148,9 @@ CREATE TABLE send_queue (
 );
 ```
 
+**Note:** `send_queue` is the execution queue used by Railway cron.  
+If a message is only in `messages`, it will **not** send until it is enqueued.
+
 ### Message Events (Detailed Outcomes)
 ```sql
 CREATE TABLE message_events (
@@ -1347,4 +1353,20 @@ LEFT JOIN contacts c ON oh.contact_id = c.id
 LEFT JOIN companies co ON c.company_id = co.id
 LEFT JOIN campaigns camp ON oh.campaign_id = camp.id
 LEFT JOIN accounts a ON oh.account_id = a.id;
+```
+
+### Daily Volume per Account (Emails)
+```sql
+CREATE OR REPLACE VIEW daily_account_message_volume AS
+SELECT
+  a.id AS account_id,
+  a.name AS account_name,
+  date_trunc('day', m.scheduled_at) AS day,
+  COUNT(*) FILTER (WHERE m.scheduled_at IS NOT NULL) AS scheduled,
+  COUNT(*) FILTER (WHERE m.status = 'pending') AS pending,
+  COUNT(*) FILTER (WHERE m.status IN ('sent','delivered','opened','clicked','replied','meeting')) AS sent,
+  COUNT(*) FILTER (WHERE m.status IN ('failed','bounced')) AS errored
+FROM messages m
+JOIN accounts a ON a.id = m.account_id
+GROUP BY a.id, a.name, date_trunc('day', m.scheduled_at);
 ```

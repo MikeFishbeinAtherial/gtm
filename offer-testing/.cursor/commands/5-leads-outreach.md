@@ -132,10 +132,73 @@ Choose the appropriate campaign type for your outreach:
 ### Railway Cron Job
 
 - Runs every 5 minutes
-- Queries: `WHERE scheduled_at <= NOW() AND status = 'pending' LIMIT 1`
+- Queries: `send_queue` items where `scheduled_for <= NOW()` and `status = 'pending'` (LIMIT 1)
 - Sends only 1 message per cron run (spaced 6-15 min apart)
 - Respects campaign type rules for connection messaging
 - Script: `scripts/process-message-queue.js`
+
+### Messages vs Send Queue (Important)
+
+- `messages` = the **source of truth** for what we intend to send (content, subject, account, scheduled_at).
+- `send_queue` = the **execution queue** that the Railway cron actually reads.
+- If a message only exists in `messages`, **it will not send** until it is enqueued.
+- Always enqueue after message creation (or create directly into `send_queue`).
+
+### How Messages Get Enqueued
+
+**Current Process:**
+1. Scripts create rows in `messages` table (content + schedule)
+2. **Manual step required:** Enqueue into `send_queue` via SQL or script
+3. Railway cron reads `send_queue` and sends
+
+**Why Two Tables?**
+- `messages` = **persistent record** (what we planned to send, audit trail)
+- `send_queue` = **execution queue** (what's ready to send right now)
+- Separation allows: editing messages before sending, pausing without losing data, retry logic
+
+**Enqueue SQL (run after creating messages):**
+```sql
+INSERT INTO send_queue (
+  campaign_id,
+  campaign_contact_id,
+  contact_id,
+  account_id,
+  channel,
+  sequence_step,
+  subject,
+  body,
+  scheduled_for,
+  priority,
+  status,
+  external_message_id
+)
+SELECT
+  m.campaign_id,
+  m.campaign_contact_id,
+  m.contact_id,
+  m.account_id,
+  m.channel,
+  m.sequence_step,
+  m.subject,
+  m.body,
+  m.scheduled_at,
+  5,
+  'pending',
+  m.id::text
+FROM messages m
+WHERE m.campaign_id = 'YOUR_CAMPAIGN_ID'
+  AND m.status IN ('pending', 'queued')
+  AND NOT EXISTS (
+    SELECT 1 FROM send_queue sq WHERE sq.external_message_id = m.id::text
+  );
+```
+
+**What Happens After Sending:**
+- `send_queue.status` updates: `pending → sent` (or `failed` if error)
+- `messages.status` updates: `queued → sent` (linked via `external_message_id`)
+- **Rows are NOT deleted** - kept for audit/logging
+- `send_queue.sent_at` timestamp recorded
+- `messages.sent_at` timestamp recorded
 
 ### Monitoring
 

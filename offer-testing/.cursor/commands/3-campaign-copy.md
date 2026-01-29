@@ -11,6 +11,7 @@ Generate email and LinkedIn copy variations for existing campaigns.
 - ✅ Offer exists (`1-new-offer` completed)
 - ✅ Campaign exists (`2-offer-campaigns` completed)
 - ✅ Campaign has signals and framework defined
+- ✅ Note: Copy creation does NOT enqueue messages (that happens in outreach step)
 
 ---
 
@@ -163,6 +164,15 @@ Saw {{company_name}} is {{signal_observation}}. We researched 50 {{industry}} co
 ```
 
 These will be filled in by `5-leads-outreach` when sending.
+
+---
+
+## Messages vs Send Queue (Important)
+
+- **Copy creation** only writes templates/files.
+- **Message creation** writes rows to `messages` (content + schedule).
+- **Sending** only happens from `send_queue` (execution queue).
+- If a message only exists in `messages`, it will **not** send until it is enqueued.
 
 ### Step 5: Save Copy Index
 

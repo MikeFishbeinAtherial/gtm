@@ -427,10 +427,79 @@ await supabaseAdmin
    
 ⏭️  Next Steps:
    1. Review leads in database or (future) UI
-   2. Run `/offer-send {offer-slug} {campaign-slug}` to review and send messages
-   3. Approve each message before sending
+   2. Run `/offer-send {offer-slug} {campaign-slug}` to create messages
+   3. **Enqueue messages** into `send_queue` (see below)
+   4. Railway cron will automatically send from `send_queue`
    
 💡 Tip: Companies are sorted by signal strength. Focus on top 20 first.
+
+---
+
+## Messages vs Send Queue (Important)
+
+After creating messages, you **must enqueue them** for sending:
+
+**How It Works:**
+- `messages` table = **source of truth** (what we plan to send, content + schedule)
+- `send_queue` table = **execution queue** (what Railway cron actually reads)
+- Railway cron **only reads `send_queue`**, not `messages`
+
+**Why Two Tables?**
+- Allows editing messages before sending (iterating on copy)
+- Separation of planning (`messages`) vs execution (`send_queue`)
+- Audit trail: `messages` keeps permanent record, `send_queue` tracks execution state
+- Retry logic: failed sends stay in `send_queue` for retry without duplicating `messages`
+
+**Enqueue After Message Creation:**
+```sql
+INSERT INTO send_queue (
+  campaign_id,
+  campaign_contact_id,
+  contact_id,
+  account_id,
+  channel,
+  sequence_step,
+  subject,
+  body,
+  scheduled_for,
+  priority,
+  status,
+  external_message_id
+)
+SELECT
+  m.campaign_id,
+  m.campaign_contact_id,
+  m.contact_id,
+  m.account_id,
+  m.channel,
+  m.sequence_step,
+  m.subject,
+  m.body,
+  m.scheduled_at,
+  5,
+  'pending',
+  m.id::text
+FROM messages m
+WHERE m.campaign_id = 'YOUR_CAMPAIGN_ID'
+  AND m.status IN ('pending', 'queued')
+  AND NOT EXISTS (
+    SELECT 1 FROM send_queue sq WHERE sq.external_message_id = m.id::text
+  );
+```
+
+**What Happens After Sending:**
+- Railway cron picks up `send_queue` items where `scheduled_for <= NOW()` and `status = 'pending'`
+- Sends via Unipile API
+- Updates `send_queue.status` to `sent` (or `failed` if error)
+- Updates `messages.status` to `sent` (linked via `external_message_id`)
+- **Rows are NOT deleted** - kept for audit trail
+- Timestamps recorded: `send_queue.sent_at`, `messages.sent_at`
+
+**Check if messages are enqueued:**
+```sql
+SELECT COUNT(*) FROM send_queue 
+WHERE campaign_id = 'YOUR_CAMPAIGN_ID';
+```
 ```
 
 ---
