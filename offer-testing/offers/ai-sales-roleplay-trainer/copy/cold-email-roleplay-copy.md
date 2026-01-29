@@ -38,7 +38,7 @@ Mike
 
 **Variant C: Straight to the Point**
 
-**Subject:** Closing faster
+**Subject:** Win more 
 
 **Body:**
 ```

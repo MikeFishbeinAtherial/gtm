@@ -18,12 +18,17 @@ const SUPABASE_SERVICE_KEY =
   process.env.SUPABASE_SERVICE_KEY
 
 const YOUR_NAME = process.env.YOUR_NAME || 'Mike'
-const UNIPILE_EMAIL_ACCOUNT_IDS = (process.env.UNIPILE_EMAIL_ACCOUNT_IDS ||
-  process.env.UNIPILE_EMAIL_ACCOUNT_ID ||
-  '')
-  .split(',')
-  .map((id) => id.trim())
-  .filter(Boolean)
+const UNIPILE_EMAIL_ACCOUNT_IDS = (() => {
+  const direct =
+    process.env.UNIPILE_EMAIL_ACCOUNT_IDS || process.env.UNIPILE_EMAIL_ACCOUNT_ID || ''
+  const fromEnv = Object.entries(process.env)
+    .filter(([key, value]) => key.startsWith('UNIPILE_EMAIL_ACCOUNT_ID_') && value)
+    .map(([, value]) => String(value))
+  return [
+    ...direct.split(',').map((id) => id.trim()).filter(Boolean),
+    ...fromEnv
+  ]
+})()
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('❌ Missing Supabase env')
@@ -37,7 +42,7 @@ if (UNIPILE_EMAIL_ACCOUNT_IDS.length === 0) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-const CAMPAIGN_NAME = 'hiring-signal-new-sales-team'
+const CAMPAIGN_NAME = 'cold-email-roleplay-aicom-hiring-012926'
 
 const VARIANTS = [
   {
@@ -57,7 +62,7 @@ ${YOUR_NAME}`
   },
   {
     id: 'D',
-    subject: 'Ramp time',
+    subject: 'Win more',
     body: `{first_name},
 
 Your new salespeople freeze up on objections because they're learning in the field instead of practicing first.
@@ -72,7 +77,7 @@ ${YOUR_NAME}`
   },
   {
     id: 'F',
-    subject: 'Ramp time',
+    subject: 'New rep training',
     body: `{first_name},
 
 How long does it take your new sales hires at {company} to close their first deal?
@@ -116,11 +121,29 @@ function addRandomMinutes(date: Date): Date {
   return new Date(date.getTime() + minutesToAdd * 60 * 1000)
 }
 
+function shortenCompanyName(name: string): string {
+  let cleaned = name
+    .replace(/\s*\(.*?\)\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  cleaned = cleaned.replace(
+    /\b(incorporated|inc\.|inc|llc|l\.l\.c\.|ltd\.|ltd|corp\.|corp|corporation|company|co\.|co|holdings|group)\b\.?/gi,
+    ''
+  ).replace(/\s+/g, ' ').trim()
+
+  if (cleaned.length <= 30) return cleaned
+
+  const words = cleaned.split(' ')
+  return words.slice(0, Math.min(4, words.length)).join(' ')
+}
+
 function personalize(variant: typeof VARIANTS[number], firstName: string, company: string) {
+  const safeCompany = shortenCompanyName(company || 'your company')
   const body = variant.body
     .replace(/{first_name}/gi, firstName)
-    .replace(/{company}/gi, company)
-  const subject = variant.subject.replace(/{company}/gi, company)
+    .replace(/{company}/gi, safeCompany)
+  const subject = variant.subject.replace(/{company}/gi, safeCompany)
   return { subject, body }
 }
 
@@ -160,17 +183,17 @@ async function main() {
   // Get account IDs
   const { data: accounts } = await supabase
     .from('accounts')
-    .select('id, external_id')
-    .in('external_id', UNIPILE_EMAIL_ACCOUNT_IDS)
+    .select('id, name, unipile_account_id')
+    .in('unipile_account_id', UNIPILE_EMAIL_ACCOUNT_IDS)
 
   if (!accounts || accounts.length === 0) {
     console.error('❌ No matching Unipile accounts found in Supabase for provided IDs')
     process.exit(1)
   }
 
-  const accountsByExternalId = new Map(accounts.map((a) => [a.external_id, a.id]))
+  const accountsByUnipileId = new Map(accounts.map((a) => [a.unipile_account_id, a.id]))
   const accountIds = UNIPILE_EMAIL_ACCOUNT_IDS
-    .map((id) => accountsByExternalId.get(id))
+    .map((id) => accountsByUnipileId.get(id))
     .filter(Boolean) as string[]
 
   if (accountIds.length === 0) {
@@ -182,6 +205,7 @@ async function main() {
   const { data: campaignContacts } = await supabase
     .from('campaign_contacts')
     .select(`
+      id,
       contact_id,
       contacts!inner (
         id,
@@ -319,6 +343,7 @@ async function main() {
 
     messagesToInsert.push({
       campaign_id: campaign.id,
+      campaign_contact_id: cc.id,
       contact_id: contact.id,
       account_id: accountId,
       channel: 'email',

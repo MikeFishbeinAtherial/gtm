@@ -30,6 +30,9 @@ The scheduling system is now live! Messages are scheduled at campaign creation t
 - ✅ Campaign status = 'ready'
 - ✅ Unipile API key set in `.env` and Railway
 - ✅ LinkedIn and/or email account connected in Unipile
+- ✅ Unipile account IDs added to Railway + `.env.local`
+- ✅ Unipile accounts upserted in Supabase
+- ✅ Contacts linked to campaign before message creation
 
 ---
 
@@ -64,10 +67,27 @@ When launching a campaign, the system automatically schedules messages:
 3. **Scheduler assigns `scheduled_at`** to each new message:
    - 6-16 min random intervals between messages
    - Max 40 LinkedIn messages per day per account
-   - Max 20 emails per businesday per account
+   - Max 20 emails per business day per account
+   - Per-account daily limits are enforced independently
    - Business hours only (9 AM - 5 PM) for cold email campaigns, networking linkedin campaigns can differ
    - Weekdays only (Mon-Fri) for cold email campaigns, networking linkedin campaigns can differ
 4. **Messages inserted to Supabase** with their scheduled timestamps
+
+### Explicit Unipile Account Setup (Required)
+
+1. Add account IDs to `.env.local` and Railway:
+   - `UNIPILE_EMAIL_ACCOUNT_ID_AICOM`
+   - `UNIPILE_EMAIL_ACCOUNT_ID_CO`
+2. Upsert accounts into Supabase:
+   - `npx tsx scripts/upsert-unipile-accounts.ts`
+3. Confirm accounts appear in `accounts` table:
+   - Each message will store `account_id` in `messages`
+
+### Campaign Linking (Before Message Creation)
+
+1. Link contacts with emails to campaign:
+   - `npx tsx scripts/link-roleplay-contacts-to-campaign.ts`
+2. Only linked `campaign_contacts.status = 'queued'` are used for message creation
 
 ### Key File: `src/lib/services/message-scheduler.ts`
 
@@ -132,6 +152,13 @@ SELECT * FROM today_sending_progress;
 SELECT * FROM campaign_progress;
 ```
 
+### Canonical Tracking (IDs)
+
+- **Message ID**: `messages.id` (UUID)
+- **Campaign ID**: `messages.campaign_id`
+- **Contact ID**: `messages.contact_id`
+- **Account ID**: `messages.account_id` (ties the exact Unipile sender)
+
 ### Emergency Controls
 
 To stop sending immediately:
@@ -145,6 +172,31 @@ UPDATE campaigns SET status = 'paused' WHERE status = 'active';
 ```
 
 ---
+
+## Campaign Naming + Metadata (Required)
+
+Every campaign must include the following in **name**, **slug**, and stored metadata:
+
+- Cold vs networking
+- Offer (e.g., roleplay)
+- Channel (email and/or linkedin)
+- Account names + IDs (Unipile)
+- Signal (e.g., hiring)
+- ICP (e.g., PMRE or hedge funds)
+
+**Example name + slug:**
+```
+cold-email-roleplay-aicom-hiring-012926
+```
+
+**Required Supabase columns (campaigns):**
+- `campaign_slug`
+- `campaign_type`
+- `channel`
+- `account_ids` (JSONB array of account IDs + names)
+- `target_criteria` (JSONB: signal, icp, offer, channel, accounts)
+
+If these are missing in your DB, run the `setup-db.sql` campaign migration section.
 
 ## Proposed Process
 
