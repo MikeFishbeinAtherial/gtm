@@ -61,21 +61,6 @@ Want to try a demo call with an AI prospect trained to act like your ICP? You'll
 ${YOUR_NAME}`
   },
   {
-    id: 'D',
-    subject: 'Win more',
-    body: `{first_name},
-
-Your new salespeople freeze up on objections because they're learning in the field instead of practicing first.
-
-We build custom AI sales roleplay trainers. Your reps practice unlimited calls with AI prospects that sounds like your real buyers.
-
-We've helped clients cut ramp time by 2/3 and win more deals.
-
-Interested in seeing how this would work for {company}?
-
-${YOUR_NAME}`
-  },
-  {
     id: 'F',
     subject: 'New rep training',
     body: `{first_name},
@@ -100,20 +85,67 @@ function formatDateET(date: Date): string {
   return formatter.format(date)
 }
 
+function getETParts(date: Date): { hour: number; dayOfWeek: number } {
+  const hour = parseInt(date.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }))
+  const dayName = date.toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long' })
+  const dayMap: Record<string, number> = {
+    'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4,
+    'Friday': 5, 'Saturday': 6, 'Sunday': 7
+  }
+  return { hour, dayOfWeek: dayMap[dayName] || 1 }
+}
+
 function inBusinessHoursET(date: Date): boolean {
-  const etDate = new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }))
-  const hour = etDate.getHours()
-  const day = etDate.getDay()
-  return day !== 0 && day !== 6 && hour >= 9 && hour < 18
+  const { hour, dayOfWeek } = getETParts(date)
+  return dayOfWeek >= 1 && dayOfWeek <= 5 && hour >= 9 && hour < 18
 }
 
 function moveToNextBusinessMorningET(date: Date): Date {
-  const etDate = new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }))
-  const day = etDate.getDay()
-  const daysToAdd = day === 6 ? 2 : day === 0 ? 1 : 0
-  etDate.setDate(etDate.getDate() + daysToAdd)
-  etDate.setHours(9, 0, 0, 0)
-  return new Date(etDate.toLocaleString('en-US', { timeZone: 'America/New_York' }))
+  const { hour, dayOfWeek } = getETParts(date)
+  
+  // Calculate days to add
+  let daysToAdd = 0
+  if (dayOfWeek === 6) { // Saturday -> Monday
+    daysToAdd = 2
+  } else if (dayOfWeek === 7) { // Sunday -> Monday
+    daysToAdd = 1
+  } else if (hour >= 18) { // After 6 PM -> next day
+    daysToAdd = 1
+    if (dayOfWeek === 5) daysToAdd = 3 // Friday -> Monday
+  } else {
+    // Need next day
+    daysToAdd = 1
+    if (dayOfWeek === 5) daysToAdd = 3 // Friday -> Monday
+  }
+  
+  // Start from current date + days
+  let candidate = new Date(date)
+  candidate.setUTCDate(candidate.getUTCDate() + daysToAdd)
+  
+  // Get the ET date string for the target day
+  const targetETDate = candidate.toLocaleString('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' })
+  const [month, day, year] = targetETDate.split('/').map(Number)
+  
+  // Create date string for 9 AM ET on that day
+  // We'll test both EST (-5) and EDT (-4) offsets
+  const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T09:00:00`
+  
+  // Try EST first (winter)
+  let testDate = new Date(`${dateStr}-05:00`)
+  let testParts = getETParts(testDate)
+  if (testParts.hour === 9 && testParts.dayOfWeek === getETParts(candidate).dayOfWeek) {
+    return testDate
+  }
+  
+  // Try EDT (summer)
+  testDate = new Date(`${dateStr}-04:00`)
+  testParts = getETParts(testDate)
+  if (testParts.hour === 9 && testParts.dayOfWeek === getETParts(candidate).dayOfWeek) {
+    return testDate
+  }
+  
+  // Fallback: use EST
+  return new Date(`${dateStr}-05:00`)
 }
 
 function addRandomMinutes(date: Date): Date {
@@ -312,14 +344,27 @@ async function main() {
     const accountId = accountIds[i % accountIds.length]
     let nextTime = lastScheduledByAccount.get(accountId) || new Date()
 
-    // Step forward and enforce daily limits per account (20/day)
+    // Step forward and enforce daily limits per account (20/day) + business hours
     let safe = 0
     while (safe < 365) {
       safe++
       nextTime = addRandomMinutes(nextTime)
 
+      // Ensure business hours (9 AM - 6 PM ET, Mon-Fri)
       if (!inBusinessHoursET(nextTime)) {
         nextTime = moveToNextBusinessMorningET(nextTime)
+        // After moving to next morning, check daily limit again
+        const dateKey = formatDateET(nextTime)
+        const counts = dailyCountByAccount.get(accountId)!
+        const dayCount = counts.get(dateKey) || 0
+        
+        if (dayCount >= 20) {
+          // Move to next business day
+          nextTime = moveToNextBusinessMorningET(
+            new Date(nextTime.getTime() + 24 * 60 * 60 * 1000)
+          )
+          continue
+        }
       }
 
       const dateKey = formatDateET(nextTime)
@@ -327,11 +372,16 @@ async function main() {
       const dayCount = counts.get(dateKey) || 0
 
       if (dayCount >= 20) {
-        // Move to next day 9am ET
-        const bumped = moveToNextBusinessMorningET(
+        // Move to next business day 9am ET
+        nextTime = moveToNextBusinessMorningET(
           new Date(nextTime.getTime() + 24 * 60 * 60 * 1000)
         )
-        nextTime = bumped
+        continue
+      }
+
+      // Double-check business hours before finalizing
+      if (!inBusinessHoursET(nextTime)) {
+        nextTime = moveToNextBusinessMorningET(nextTime)
         continue
       }
 
