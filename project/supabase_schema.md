@@ -635,10 +635,17 @@ CREATE INDEX idx_messages_account ON messages(account_id);
 CREATE INDEX idx_messages_send_queue ON messages(send_queue_id);
 CREATE INDEX idx_messages_status ON messages(status);
 CREATE INDEX idx_messages_scheduled ON messages(scheduled_at) WHERE status = 'pending';
+CREATE INDEX idx_messages_account ON messages(account_id);
 ```
 
 **Note:** `messages` stores the content + intent (what we plan to send).  
 Actual sending is driven by `send_queue`.
+
+**Scheduling & Account Assignment:**
+- `account_id` - Links to `accounts` table (assigned at message creation)
+- `scheduled_at` - Calculated timestamp respecting business hours and daily limits
+- Scripts like `create-roleplay-email-messages.ts` assign accounts (round-robin) and calculate schedules
+- See `project/message-scheduling-architecture.md` for scheduling details
 
 ---
 
@@ -715,10 +722,18 @@ CREATE INDEX idx_accounts_owner ON accounts(owner);
 CREATE INDEX idx_accounts_status ON accounts(status);
 ```
 
+**Scheduling & Limiting:**
+- `daily_limit_emails` - Max emails per day for this account (default: 100, but set to 20 for cold email)
+- `daily_limit_connections` - Max LinkedIn connection requests per day (default: 20)
+- `daily_limit_messages` - Max LinkedIn messages per day (default: 40)
+- `account_id` in `messages` and `send_queue` links to this table for limit enforcement
+- Railway cron (`process-message-queue.js`) checks `account_activity` table to count sends per day
+- See `project/message-scheduling-architecture.md` for full architecture details
+
 ---
 
 ### 8. ACCOUNT_ACTIVITY
-Detailed activity log for rate limiting and debugging.
+Detailed activity log for rate limiting and debugging. **This is the source of truth for daily limit enforcement.**
 
 ```sql
 CREATE TABLE account_activity (
@@ -752,6 +767,12 @@ CREATE INDEX idx_activity_account_date ON account_activity(account_id, created_a
 CREATE INDEX idx_activity_daily ON account_activity(account_id, action_type, created_at)
     WHERE created_at >= CURRENT_DATE;
 ```
+
+**Scheduling & Limiting:**
+- Railway cron logs each successful send here (`status = 'success'`)
+- Daily limit checks count: `WHERE account_id = X AND action_type = 'email' AND status = 'success' AND created_at >= start_of_day`
+- Used by `process-message-queue.js` to enforce `accounts.daily_limit_emails`
+- See `project/message-scheduling-architecture.md` for enforcement details
 
 ---
 
@@ -1120,6 +1141,15 @@ CREATE TABLE message_templates (
 ```
 
 ### Send Queue (Scheduled Messages)
+
+**Scheduling & Limiting:**
+- `account_id` - Links to `accounts` table for per-account limit enforcement
+- `scheduled_for` - When Railway cron should process this item (copied from `messages.scheduled_at`)
+- Railway cron (`process-message-queue.js`) enforces:
+  - Business hours (9 AM - 6 PM ET, Mon-Fri) - skips if outside window
+  - Daily limits per account (checks `account_activity` table)
+  - Account spacing (min 6 minutes between sends per account)
+- See `project/message-scheduling-architecture.md` for full architecture
 ```sql
 CREATE TABLE send_queue (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

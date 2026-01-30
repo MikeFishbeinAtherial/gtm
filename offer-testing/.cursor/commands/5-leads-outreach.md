@@ -56,22 +56,57 @@ The scheduling system is now live! Messages are scheduled at campaign creation t
 
 ---
 
-## Message Scheduling System
+## Message Scheduling & Limiting System
 
-When launching a campaign, the system automatically schedules messages:
+The system uses a **multi-layer approach** to schedule and limit messages across three phases:
 
-### How It Works
+### Architecture Overview
 
-1. **Cursor calls Scheduler Service** when campaign is created
-2. **Scheduler queries existing queue** - finds last scheduled message per channel
-3. **Scheduler assigns `scheduled_at`** to each new message:
-   - 6-16 min random intervals between messages
-   - Max 40 LinkedIn messages per day per account
-   - Max 20 emails per business day per account
-   - Per-account daily limits are enforced independently
-   - Business hours only (9 AM - 5 PM) for cold email campaigns, networking linkedin campaigns can differ
-   - Weekdays only (Mon-Fri) for cold email campaigns, networking linkedin campaigns can differ
-4. **Messages inserted to Supabase** with their scheduled timestamps
+**1. Message Creation Phase** (Scripts like `create-roleplay-email-messages.ts`)
+- Assigns `account_id` to each message (round-robin distribution)
+- Calculates `scheduled_at` respecting:
+  - Business hours (9 AM - 6 PM ET, Mon-Fri for cold email)
+  - Daily limits per account (20 emails/day default)
+  - Random spacing (5-20 minutes between messages)
+- Inserts into `messages` table with `status = 'pending'`
+
+**2. Enqueue Phase** (Manual SQL or helper script)
+- Copies messages from `messages` → `send_queue`
+- Links via `external_message_id = messages.id`
+- Sets `scheduled_for = messages.scheduled_at`
+- Updates `messages.status = 'queued'`
+
+**3. Sending Phase** (Railway Cron: `process-message-queue.js`)
+- Runs every 5 minutes
+- **Business Hours Check**: Skips if outside 9 AM - 6 PM ET Mon-Fri
+- **Daily Limit Check**: Counts `account_activity` per account per day
+- **Account Spacing**: Ensures min 6 minutes between sends per account
+- Sends via Unipile API and logs to `account_activity`
+
+### How Account Limits Work
+
+**Per-Account Configuration:**
+- Stored in `accounts.daily_limit_emails` (default: 100, but set to 20 for cold email)
+- Each message has `account_id` linking to `accounts` table
+- Limits enforced independently per account
+
+**Limit Enforcement:**
+1. **At Creation**: Scripts calculate schedules respecting daily limits
+2. **At Send Time**: Railway cron double-checks via `account_activity` table
+3. **Rescheduling**: If limit exceeded, cron reschedules to next business day
+
+**Business Hours:**
+- Configured in `process-message-queue.js`:
+  - `BUSINESS_HOURS_START = 9` (9 AM ET)
+  - `BUSINESS_HOURS_END = 18` (6 PM ET)
+  - `SEND_DAYS = [1, 2, 3, 4, 5]` (Mon-Fri only)
+- Enforced at cron level (won't send outside hours even if scheduled)
+
+### Key Files
+
+- **Message Creation**: `scripts/create-roleplay-email-messages.ts`
+- **Railway Cron**: `scripts/process-message-queue.js`
+- **Architecture Docs**: `project/message-scheduling-architecture.md`
 
 ### Explicit Unipile Account Setup (Required)
 
