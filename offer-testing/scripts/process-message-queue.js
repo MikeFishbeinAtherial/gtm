@@ -40,9 +40,9 @@ const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || 'notifications@your
 
 // Sending window + safety limits (LinkedIn safety rules)
 const TIMEZONE = 'America/New_York';
-const BUSINESS_HOURS_START = 7; // 7 AM ET (earlier start)
+const BUSINESS_HOURS_START = 9; // 9 AM ET
 const BUSINESS_HOURS_END = 18; // 6 PM ET
-const SEND_DAYS = [0, 1, 2, 3, 4, 5, 6]; // All 7 days (including weekends)
+const SEND_DAYS = [1, 2, 3, 4, 5]; // Monday-Friday only (no weekends)
 const JITTER_MIN_SECONDS = 15;
 const JITTER_MAX_SECONDS = 120;
 const MIN_SEND_INTERVAL_MINUTES = 6; // Per-account minimum spacing
@@ -230,6 +230,16 @@ async function processDueMessages() {
     // Then check the send_queue (only if no networking message was sent).
     // Railway cron calls this script, and the send_queue is the single source of truth for what to send next.
     // We claim exactly one row via claim_send_queue_item() to avoid duplicates (SKIP LOCKED prevents two workers from grabbing the same item).
+    
+    // Check business hours before processing send_queue items
+    const nowInTz = getNowInTimeZone();
+    if (!isWithinSendWindow(nowInTz)) {
+      console.log(`⏰ Outside send window (${nowInTz.toLocaleString('en-US', { timeZone: TIMEZONE })} ET)`);
+      console.log(`   Allowed: Mon-Fri, ${BUSINESS_HOURS_START}am-${BUSINESS_HOURS_END}pm ET`);
+      console.log(`   Skipping send_queue processing until business hours`);
+      return false;
+    }
+    
     const { data: claimedItems, error } = await supabase
       .rpc('claim_send_queue_item');
 
@@ -1088,7 +1098,7 @@ function getDailyLimitForAccount(account, actionType) {
   };
 
   if (actionType === 'email') {
-    const override = toNumber(safeAccount.daily_limit_email);
+    const override = toNumber(safeAccount.daily_limit_emails);
     return override !== null
       ? override
       : DEFAULT_DAILY_LIMITS.email;
